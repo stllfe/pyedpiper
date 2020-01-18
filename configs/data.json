@@ -1,0 +1,25 @@
+{
+  "data_root": "/home/oleg/DATA/retina/train_datasets",
+  "data_folder": "regressorzz",
+  "data_type": "image",
+  "data_train": "train",
+  "data_test": null,
+  "data_val": "val",
+  "data_workers": 4,
+  "data_shuffle": true,
+  "pin_memory": true,
+  "images_size": [
+    505,
+    505
+  ],
+  "images_mean": [
+    0.5,
+    0.5,
+    0.5
+  ],
+  "images_std": [
+    0.5,
+    0.5,
+    0.5
+  ]
+}
