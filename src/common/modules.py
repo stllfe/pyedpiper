@@ -49,7 +49,7 @@ class ModelObjectProvider:
         else:
             # if no module provided search locally
             print("searching in `%s` directory ..." % MODELS_DIR)
-            load_from = MODELS_DIR / '%s.py' % self.model_name
+            load_from = MODELS_DIR / ('%s.py' % self.model_name.lower())
             module = self._load_local_module(self, load_from)
 
         if not module:
@@ -66,6 +66,7 @@ class ModelObjectProvider:
 
         # save the final destination if successfully loaded
         self.loaded_from = load_from
+        print("model `%s` loaded successfully" % self.model_name)
 
     def get_model(self):
         pass
@@ -133,3 +134,8 @@ class TrainObjectsBuilder(PipelineObjectsBuilder):
 
 class TestObjectsBuilder(PipelineObjectsBuilder):
     pass
+
+
+import torch
+
+loss = torch.nn.SmoothL1Loss()

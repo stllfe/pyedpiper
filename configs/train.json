@@ -1,8 +1,8 @@
 {
   "task_type": "regression",
   "label": "new_regressor",
-  "model": "xception",
-  "load_from": "pretrainedmodels.models",
+  "model": "Xception",
+  "load_from": null,
   "num_outputs": 1,
   "checkpoint": null,
   "tune": false,

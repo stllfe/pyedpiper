@@ -17,7 +17,7 @@ def get_project_root() -> Path:
     if main_py_dir:
         return main_py_dir
 
-    error = "Can't locate root folder. Make sure you either have a `src` folder or a `main.py` in your project root!"
+    error = "Can't locate the root folder. Make sure you have a `src` folder or a `main.py` in your project root!"
     raise Exception(error)
 
 

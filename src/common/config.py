@@ -26,7 +26,7 @@ class AttrDict(dict):
 
     def __getattr__(self, item):
         try:
-            return self.__getitem__(item)
+            return super().__getitem__(item)
         except KeyError:
             raise AttributeError(item)
 
@@ -101,6 +101,12 @@ class Config(AttrDict):
             return self._binded_items[parameter]
         try:
             return super().__getitem__(parameter)
+        except KeyError:
+            return
+
+    def __getattr__(self, item):
+        try:
+            super().__getitem__(item)
         except KeyError:
             return
 

@@ -2,13 +2,12 @@ from src.utils.helpers import (
     load_configuration,
     get_engines
 )
+from src.custom import XceptionModel
 
 
 def main():
     config = load_configuration()
-    #engines = get_engines(config)
-
-    print(config.custom)
+    print(config.custom, config.train)
 
 
 if __name__ == '__main__':
