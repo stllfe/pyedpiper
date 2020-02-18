@@ -1,6 +1,6 @@
-from pathlib import Path
-import os
 import json
+import os
+from pathlib import Path
 
 
 class AttrDict(dict):
@@ -36,18 +36,24 @@ class AttrDict(dict):
 class Config(AttrDict):
     """
     This class loads json files as AttrDicts.
+
     Provides two ways of accessing configuration parameters:
-        per each added file:
+        - per each added file:
             e.g. you loaded file `general.json` with `load(path)` method.
-            then you can access any related properties coming from this file by simply:
+            then access any related properties coming from this file by simply:
             `config.general.property`
-        per each property alone:
-            you can access any property from any loaded file by simply:
+        - per each property alone:
+            access any property from any loaded file by simply:
             `config.property`
+
     Keep in mind that any overlapping properties will be overriden by the latest added one.
-    As well as changing property with a global (per property) access will change its value throughout the whole config:
-        e.g. assuming that initially `config.general.property == config.property == 1`
-        `config.property = 2` will set `config.general.property` to 2 as well.
+    As well as changing property with a global (per property) access will change its value throughout the whole config.
+    E.g. assuming that initially:
+        `config.general.property == config.property == 1`
+        setting `config.property = 2` will set `config.general.property` to 2 as well.
+
+    (!) Note that it returns `None` in case of a missing key.
+    Its actually more natural for configuration file as it basically equals to `not stated`.
     """
 
     custom = {}
@@ -94,11 +100,8 @@ class Config(AttrDict):
                 self[group][parameter] = value
 
     def __getitem__(self, parameter):
-        # it returns None in case of missing key
-        # which is actually way more natural for configuration file
-        # as it basically equals to `not stated`
-        if parameter in self._binded_items.keys():
-            return self._binded_items[parameter]
+        if parameter in self._bound_parameters.keys():
+            return self._bound_parameters[parameter]
         try:
             return super().__getitem__(parameter)
         except KeyError:

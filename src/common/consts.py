@@ -1,29 +1,24 @@
 from pathlib import Path
-from src.optimizers.radam import RAdam
-from torch.optim import SGD, Adam
+
 from torch.nn import SmoothL1Loss, CrossEntropyLoss
-
-from ignite.metrics import (
-    MeanSquaredError,
-    MeanAbsoluteError,
-    Precision,
-    Recall,
-    Accuracy,
-)
-
+from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import (
     StepLR,
     MultiStepLR,
     CosineAnnealingLR
 )
 
+from src.common.types import TaskTypes
+from src.optimizers.radam import RAdam
+
 # project structure
 CONFIGS_DIR = Path('configs')
 RUNS_DIR = Path('runs')
 SRC_DIR = Path('src')
+
 MODELS_DIR = SRC_DIR / 'models'
 
-# implemented modules
+# default modules
 SCHEDULERS = {
     'step': StepLR,
     'cosine': CosineAnnealingLR,
@@ -37,21 +32,13 @@ OPTIMIZERS = {
     'default': RAdam
 }
 
-METRICS = {
-    'mse': MeanSquaredError,
-    'mae': MeanAbsoluteError,
-    'accuracy': Accuracy,
-    'precision': Precision,
-    'recall': Recall,
+LOSSES = {
+    TaskTypes.Classification: CrossEntropyLoss,
+    TaskTypes.Regression: SmoothL1Loss,
+    **{task_type: None for task_type in TaskTypes},
 }
 
-LOSSES = {
-    'classification':
-        {
-            'default': CrossEntropyLoss
-        },
-    'regression':
-        {
-            'default': SmoothL1Loss
-        },
-}
+IMG_EXTENSIONS = ('jpg', 'jpeg', 'png', 'ppm', 'bmp', 'pgm', 'tif', 'tiff', 'webp')
+NP_EXTENSIONS = ('npy',)
+PICKLE_EXTENSIONS = ('pickle',)
+TORCH_EXTENSIONS = ('pth', 'pt')

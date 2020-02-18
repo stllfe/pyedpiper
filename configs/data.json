@@ -1,12 +1,13 @@
 {
   "data_root": "/",
   "data_folder": "dummy",
-  "data_type": "image",
+  "data_type": "images",
   "data_train": "train",
   "data_test": null,
   "data_val": "val",
   "data_workers": 4,
-  "data_shuffle": true,
+  "data_weighted": true,
+  "data_shuffle": false,
   "pin_memory": true,
   "images_size": [
     1024,
