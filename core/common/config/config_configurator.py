@@ -1,9 +1,8 @@
 from abc import abstractmethod, ABC
 from copy import deepcopy
 
-from src.common.config import Config
-from src.common.modules.chain_function_applier import ChainFunctionApplier
-from src.common.modules.config_validator import ConfigValidator
+from core.common.modules.chain_function_applier import ChainFunctionApplier
+from core.common.config import Config, ConfigValidator
 
 
 class BaseConfigConfigurator(ABC):

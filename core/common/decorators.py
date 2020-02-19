@@ -1,9 +1,10 @@
 import logging
+
 from functools import wraps
 from pathlib import Path
 
-from src.common.config import Config
-from src.common.modules.config_validator import ConfigValidator
+from core.common.config import Config
+from core.common.config import ConfigValidator
 
 
 def config_validation(function):
@@ -25,7 +26,6 @@ def config_validation(function):
                     return has_result and has_errors
             except KeyError:
                 pass
-
         return False
 
     if _is_compatible_validation_fn(function):
@@ -39,7 +39,7 @@ def config_validation(function):
 def file_loader(func):
     """
     Decorator function to add try-catch block and logging for loaders.
-    returns:
+    :return:
         wrapped function
     """
 

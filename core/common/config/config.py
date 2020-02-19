@@ -1,6 +1,16 @@
 import json
+import logging
 import os
+
 from pathlib import Path
+from typing import Mapping
+
+from core.common.types import (
+    Modes,
+    Devices,
+    TaskTypes,
+    DataTypes,
+)
 
 
 class AttrDict(dict):
@@ -56,14 +66,18 @@ class Config(AttrDict):
     Its actually more natural for configuration file as it basically equals to `not stated`.
     """
 
-    custom = {}
-    _bound_parameters = {}
+    custom = AttrDict()
+    _bound_parameters = AttrDict()
     _files = []
+
+    def bound(self, parameters: Mapping):
+        self._bound_parameters.update(parameters)
 
     def add_file(self, path):
         path = Path(path)
         if not path.exists() or not path.is_file():
-            error = "Can't allocate configuration file with path: `%s`" % path
+            error = "Can't allocate configuration file with path: `{}`".format(path)
+            logging.error(error)
             raise FileNotFoundError(error)
         if path not in self._files:
             self._files.append(path)
@@ -123,3 +137,74 @@ class Config(AttrDict):
         super(Config, self).__setitem__(parameter, value)
 
     __setattr__ = __setitem__
+
+
+class DefaultConfig(Config):
+    def __init__(self):
+        # ==================== General settings ====================
+        self.run = None
+        self.device = Devices.CPU
+        self.seed = None
+        self.log_to_tensorboard = True
+        self.log_to_csv = True
+        self.log_frequency = 1
+        self.save_best_state = True
+        self.save_state_every_nth_epoch = None
+
+        # ================== Data related settings ==================
+        self.data_root = None
+        self.data_folder = None
+        self.data_type = None
+        self.data_train = None
+        self.data_test = None
+        self.data_val = None
+        self.data_workers = os.cpu_count()
+        self.data_weighted = False
+        self.data_shuffle = True
+        self.drop_last = True
+        self.pin_memory = True
+
+        # ================= Images related settings =================
+        self.images_size = None
+        self.images_mean = None
+        self.images_std = None
+
+        # todo: Hereafter should be same blocks for images with masks
+        # ...
+
+        # ============== Running mode related settings ==============
+        # General experiment settings
+        self.task_type = None
+        self.label = None
+        self.model = None
+        self.model_parameters = AttrDict()
+        self.load_from = None
+        self.num_outputs = None
+        self.checkpoint = None
+        self.batch_size = None
+
+        # Training specific settings
+        self.tune = True
+        self.validate = True
+        self.metrics = []
+        self.num_epochs = None
+        self.lr = None
+        self.weight_decay = None
+        self.scheduler = None
+
+        # ============== Bound all the applied settings ==============
+        super(DefaultConfig).__init__()
+
+    @staticmethod
+    def for_regression(metric="MAE", data_type="images"):
+        regression_config = DefaultConfig()
+        regression_config.task_type = TaskTypes.Regression
+        regression_config.num_outputs = 1
+        regression_config.metrics.append(metric)
+
+        if data_type in iter(DataTypes.value):
+            regression_config.data_type = DataTypes[data_type]
+            return regression_config
+
+        regression_config.data_type = DataTypes.Custom
+        return regression_config

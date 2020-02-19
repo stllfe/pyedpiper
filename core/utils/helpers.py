@@ -1,18 +1,22 @@
 import logging
 import os
+import re
+
 import pickle
 import random
+import numpy as np
+import torch
+
+from PIL import Image
 from pathlib import Path
 from typing import List
 
-import numpy as np
-import torch
 from numpy import ndarray
 from torch import Tensor
 
-from src.common.config import Config
-from src.common.consts import CONFIGS_DIR
-from src.common.decorators import file_loader
+from core.common.config import Config
+from core.common.consts import CONFIGS_DIR
+from core.common.decorators import file_loader
 
 
 def set_random_seed(seed):
@@ -25,16 +29,16 @@ def get_project_root() -> Path:
     file_dir = Path(__file__)
     parents = file_dir.parents
 
-    src_dir = next((parent for parent in parents if parent.name == 'src'), None)
+    core_dir = next((parent for parent in parents if parent.name == 'core'), None)
     main_py_dir = next((parent for parent in parents if list(parent.glob('main.py'))), None)
 
-    if src_dir:
-        return src_dir.parent
+    if core_dir:
+        return core_dir.parent
 
     if main_py_dir:
         return main_py_dir
 
-    error = "Can't locate the root folder. Make sure you have a `src` folder or a `main.py` in your project root!"
+    error = "Can't locate the root folder. Make sure you have a `core` folder or a `main.py` in your project root!"
     logging.error(error)
     raise Exception(error)
 
@@ -70,7 +74,7 @@ def load_configuration() -> Config:
     config_paths = list(config_paths)
 
     if not config_paths:
-        error = "Can't locate configuration files. Place `file.json` in `{}` first!"
+        error = "Can't locate configuration files. Place `*.json` in `{}` first!"
         error = error.format(CONFIGS_DIR)
         logging.error(error)
         raise FileNotFoundError(error)
@@ -104,3 +108,20 @@ def pickle_loader(path):
 @file_loader
 def torch_loader(path, location='cpu'):
     return torch.load(path, map_location=location)
+
+
+@file_loader
+def pil_loader(path):
+    # Open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+    with open(path, 'rb') as file:
+        image = Image.open(file)
+        return image.convert('RGB')
+
+
+def snake_to_camel(string: str):
+    return ''.join(word.title() for word in string.split('_'))
+
+
+def camel_to_snake(string: str):
+    string = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', string).lower()

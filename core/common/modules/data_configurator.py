@@ -1,28 +1,27 @@
 import logging
-from abc import ABC, abstractmethod
-
 import numpy as np
 import torch
+
+from abc import ABC, abstractmethod
 from torch.utils.data import WeightedRandomSampler, DataLoader
 from torchvision.datasets.folder import (
     ImageFolder,
     DatasetFolder,
-    pil_loader
 )
-
-from src.common.config import Config
-from src.common.consts import (
-    IMG_EXTENSIONS,
-    NP_EXTENSIONS,
+from core.common.config import Config
+from core.common.consts import (
+    IMAGE_EXTENSIONS,
+    NUMPY_EXTENSIONS,
     PICKLE_EXTENSIONS,
 )
-from src.common.types import (
+from core.common.types import (
     Modes,
-    DatasetTypes,
+    DataTypes,
 )
-from src.utils.helpers import (
+from core.utils.helpers import (
     numpy_loader,
     pickle_loader,
+    pil_loader,
 )
 
 
@@ -58,17 +57,17 @@ class BaseDataConfigurator(ABC):
 
 class DataConfigurator(BaseDataConfigurator):
     def _build_dataset(self, mode):
-        if self._config.data_type == DatasetTypes.Images:
+        if self._config.data_type == DataTypes.Images:
             dataset = ImageFolder(
                 root=self._config.data_root,
                 transform=self._get_transforms(mode),
             )
 
-        elif self._config.data_type == DatasetTypes.ImagesAndMasks:
+        elif self._config.data_type == DataTypes.ImagesAndMasks:
             # todo: implement me
             pass
 
-        elif self._config.data_type == DatasetTypes.Custom:
+        elif self._config.data_type == DataTypes.Custom:
             if self._config.data_extensions:
                 extensions = tuple(self._config.data_extensions)
             else:
@@ -101,7 +100,7 @@ class DataConfigurator(BaseDataConfigurator):
             num_workers=self._config.num_workers,
             pin_memory=self._config.pin_memory,
 
-            drop_last=True
+            drop_last=self._config.drop_last
         )
 
     def _get_transforms(self, mode: Modes):
@@ -119,8 +118,8 @@ class DataConfigurator(BaseDataConfigurator):
     def _get_file_loader(extensions):
         extensions = list(map(str.lower, extensions))
         extensions_map = {
-            NP_EXTENSIONS: numpy_loader,
-            IMG_EXTENSIONS: pil_loader,
+            NUMPY_EXTENSIONS: numpy_loader,
+            IMAGE_EXTENSIONS: pil_loader,
             PICKLE_EXTENSIONS: pickle_loader,
         }
         for supported_extensions, handler in extensions_map.items():

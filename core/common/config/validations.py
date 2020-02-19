@@ -1,19 +1,15 @@
 from pathlib import Path
 
-from src.common.config import Config
-from src.common.consts import TORCH_EXTENSIONS
-from src.common.decorators import config_validation
-from src.common.modules.chain_function_applier import ChainFunctionApplier
-from src.common.types import Modes
-from src.utils.helpers import torch_loader
-from src.utils.validations import is_valid_directory, is_valid_file
+from core.common.config import Config
+from core.common.consts import TORCH_EXTENSIONS
+from core.common.decorators import config_validation
+from core.common.types import Modes
 
-
-class ConfigValidator(ChainFunctionApplier):
-    custom_validations = []
-
-    def __init__(self):
-        super(ConfigValidator).__init__(self.custom_validations, Config)
+from core.utils.helpers import torch_loader
+from core.utils.validations import (
+    is_valid_directory,
+    is_valid_file,
+)
 
 
 @config_validation

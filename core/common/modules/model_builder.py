@@ -1,5 +1,5 @@
-from src.common.config import Config
-from src.common.model import DefaultModel
+from core.common.config import Config
+from core.common.model import DefaultModel
 
 
 class ModelBuilder:

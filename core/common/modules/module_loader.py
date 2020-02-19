@@ -1,12 +1,12 @@
 import logging
+
+from pathlib import Path
 from importlib import import_module
+from core.utils.helpers import get_project_root
 from importlib.util import (
     module_from_spec,
     spec_from_file_location,
 )
-from pathlib import Path
-
-from src.utils.helpers import get_project_root
 
 
 class ModuleLoader:
