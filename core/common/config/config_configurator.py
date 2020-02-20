@@ -1,26 +1,12 @@
 from abc import abstractmethod, ABC
 from copy import deepcopy
 
-from core.common.modules.chain_function_applier import ChainFunctionApplier
-from core.common.config import Config, ConfigValidator
+from core.common.config import Config
 
 
 class BaseConfigConfigurator(ABC):
-    def __init__(self, config: Config, validator: ChainFunctionApplier):
-        self._base_config = deepcopy(config)
-        self._validator = validator
-        self._configured_config = None
-
-    @property
-    def config(self):
-        return self._configured_config if self.is_configured else self._base_config
-
-    @property
-    def is_configured(self):
-        return bool(self._configured_config)
-
     @abstractmethod
-    def _configure_general(self):
+    def _configure_general(self, config: Config):
         """
         Set devices, random seeds and other general parameters
         according to current `config.run` setting
@@ -28,21 +14,21 @@ class BaseConfigConfigurator(ABC):
         pass
 
     @abstractmethod
-    def _configure_train(self):
+    def _configure_train(self, config: Config):
         """
         Necessary if `config.run` == 'train', optional otherwise
         """
         pass
 
     @abstractmethod
-    def _configure_test(self):
+    def _configure_test(self, config: Config):
         """
         Necessary if `config.run` == 'test', optional otherwise
         """
         pass
 
     @abstractmethod
-    def _configure_data(self):
+    def _configure_data(self, config: Config):
         """
         This is crucial since data configuration is needed anyways.
         If `config.run` == `train` and `validation` == True,
@@ -51,24 +37,23 @@ class BaseConfigConfigurator(ABC):
         pass
 
     @abstractmethod
-    def _configure_custom(self):
+    def _configure_custom(self, config: Config):
         """
         This can be set manually.
         """
         # todo: think of a good way to make it easily extendable in the future
         pass
 
-    def configure(self) -> Config:
-        self._configured_config = self._configure_general()
-        self._configured_config = self._configure_data()
-        self._configured_config = self._configure_train()
-        self._configured_config = self._configure_test()
-        return self._configured_config
+    def configure(self, config: Config) -> Config:
+        base_config = deepcopy(config)
+        config = self._configure_general(base_config)
+        config = self._configure_data(config)
+        config = self._configure_train(config)
+        config = self._configure_test(config)
+        return config
 
 
 class ConfigConfigurator(BaseConfigConfigurator):
-    def __init__(self, config: Config):
-        super(ConfigConfigurator).__init__(config, ConfigValidator())
 
     def _configure_general(self):
         # todo: start with implementing me!

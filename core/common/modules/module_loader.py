@@ -1,69 +1,104 @@
 import logging
-
-from pathlib import Path
 from importlib import import_module
-from core.utils.helpers import get_project_root
 from importlib.util import (
     module_from_spec,
     spec_from_file_location,
 )
+from pathlib import Path
+
+from core.common.consts import PYTHON_EXTENSIONS
+from core.utils.helpers import get_project_root
+from core.utils.validations import is_valid_file
 
 
 class ModuleLoader:
-    def __init__(self, module_name, load_from):
-        self.module_name = module_name
-        self.module_obj = self._load_module()
-
-        self.load_from = load_from
-        self.loaded_from = None
-
     @staticmethod
-    def _load_third_party_module(module_name):
+    def load_external_module(module_name):
         try:
             return import_module(module_name)
-        except ModuleNotFoundError:
-            return
-
-    @staticmethod
-    def _load_local_module(module_path):
-        module_path = Path(module_path)
-        name = module_path.name.split('.')[0]
-        if not module_path.exists():
-            return
-        spec = spec_from_file_location(
-            name=name,
-            location=module_path
-        )
-        module = module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
-
-    def _load_module(self):
-        load_from = self.load_from
-        if load_from:
-            logging.info("Loading module `{}`".format(load_from))
-            module = self._load_third_party_module(load_from)
-        else:
-            # if no module provided search locally
-            logging.info("Couldn't find  {} in third-party libraries".format(self.module_name))
-            logging.info("Searching for `{}` locally ...".format(self.module_name))
-
-            load_from = get_project_root() / self.load_from / '{}.py'.format(self.module_name.lower())
-            module = self._load_local_module(load_from)
-
-        if not module:
-            error = "Module not found: `{}".format(load_from)
-            logging.error(error)
-            raise ModuleNotFoundError(error)
-
-        logging.info("Found module with name: {}".format(module.__name__))
-        try:
-            self.module_obj = getattr(module, self.module_name)
-        except AttributeError as e:
-            error = "No object `{}` found in module: `{}`".format(self.module_name, load_from)
-            logging.error(error)
+        except ModuleNotFoundError as e:
+            error = "Can't load third party module `{}` ".format(module_name)
+            message = "Make sure that name is correct and corresponding pip package is properly installed."
+            logging.error(error + message)
             raise e
 
-        # save the final destination if successfully loaded
-        self.loaded_from = load_from
-        logging.info("Module `{}` loaded successfully!".format(self.module_name))
+    @staticmethod
+    def load_local_module(module_path):
+        try:
+            module_name = module_path.name.split('.')[0]
+            spec = spec_from_file_location(
+                name=module_name,
+                location=module_path
+            )
+            module = module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        except Exception as e:
+            error = "Can't load local module `{}`. ".format(module_path)
+            message = "Original exception was: {}".format(e)
+            logging.error(error + message)
+            raise e
+
+    @staticmethod
+    def load_module(module_path: str):
+        try:
+            if _is_local_module(module_path):
+                module_path = _resolve_local_module(module_path)
+                logging.info("Loading local module `{}`".format(module_path))
+                module = ModuleLoader.load_local_module(module_path)
+            elif _is_external_module(module_path):
+                module = ModuleLoader.load_external_module(module_path)
+            else:
+                error = "Provided module path is incorrect!"
+                raise NotImplementedError(error)
+        except Exception as e:
+            error = "Can't load module `{}`. ".format(module_path)
+            message = "{}".format(e)
+            raise Exception(error + message)
+        logging.info("Module `{}` loaded successfully!".format(module))
+        return module
+
+
+def _is_external_module(module_path) -> bool:
+    return module_path.find('/') == -1 and not module_path.startswith('.')
+
+
+def _is_relative_import(load_from) -> bool:
+    return is_valid_file(get_relative_path(load_from), PYTHON_EXTENSIONS)
+
+
+def _is_absolute_import(load_from) -> bool:
+    return is_valid_file(get_absolute_path(load_from), PYTHON_EXTENSIONS)
+
+
+def _is_local_module(load_from):
+    return _is_absolute_import(load_from) or _is_relative_import(load_from)
+
+
+def _resolve_local_module(module_path):
+    if _is_absolute_import(module_path):
+        return get_absolute_path(module_path)
+    elif _is_relative_import(module_path):
+        return get_relative_path(module_path)
+    else:
+        error = "Tried to resolve module path `{}` which appears to be nonlocal".format(module_path)
+        logging.debug(error)
+        raise TypeError(error)
+
+
+def get_absolute_path(path: str) -> Path:
+    """
+    Returns the full path from posix one
+    :param path: str or Path-like object
+    :return: Path object
+    """
+    return Path(path).resolve()
+
+
+def get_relative_path(path: str) -> Path:
+    """
+    Returns the path attached to project root
+    :param path: str or Path-like object
+    :return: Path object
+    """
+    return (get_project_root() / Path(path)).resolve()

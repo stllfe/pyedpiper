@@ -6,7 +6,8 @@ RUNS_DIR = Path('runs')
 CORE_DIR = Path('core')
 
 # file extensions
-IMAGE_EXTENSIONS = ('jpg', 'jpeg', 'png', 'ppm', 'bmp', 'pgm', 'tif', 'tiff', 'webp')
-NUMPY_EXTENSIONS = ('npy',)
-PICKLE_EXTENSIONS = ('pickle',)
-TORCH_EXTENSIONS = ('pth', 'pt')
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
+NUMPY_EXTENSIONS = ('.npy',)
+PICKLE_EXTENSIONS = ('.pickle',)
+TORCH_EXTENSIONS = ('.pth', '.pt')
+PYTHON_EXTENSIONS = ('.py',)

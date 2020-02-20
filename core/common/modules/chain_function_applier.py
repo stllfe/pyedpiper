@@ -38,4 +38,4 @@ class ChainFunctionApplier:
 
     def apply(self, obj):
         if self.functions:
-            return all([function(obj) for function in self.functions])
+            return [function(obj) for function in self.functions]

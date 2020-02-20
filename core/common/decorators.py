@@ -1,5 +1,4 @@
 import logging
-
 from functools import wraps
 from pathlib import Path
 
@@ -12,24 +11,23 @@ def config_validation(function):
     Decorator function to add config validations.
     """
 
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        errors = function(*args, **kwargs)
+        return {'result': any(errors), 'errors': errors}
+
     def _is_compatible_validation_fn(function):
         if ConfigValidator.is_applicable(function):
             try:
                 empty_config = Config()
                 result = function(empty_config)
-                if (
-                        result is not None and
-                        isinstance(result, dict)
-                ):  # sad story bro
-                    has_result = isinstance(result['result'], bool)
-                    has_errors = isinstance(result['errors'], bool)
-                    return has_result and has_errors
-            except KeyError:
+                return isinstance(result, list)
+            except Exception:
                 pass
         return False
 
     if _is_compatible_validation_fn(function):
-        ConfigValidator.custom_validations.append(function)
+        ConfigValidator.validations.append(wrapper)
     else:
         error = "{} is not compatible function. Please check documentation at: https://github.com/stllfe/pyedpiper/"
         error = error.format(function, Config)
@@ -38,9 +36,8 @@ def config_validation(function):
 
 def file_loader(func):
     """
-    Decorator function to add try-catch block and logging for loaders.
-    :return:
-        wrapped function
+    Decorator function to add `try` block and logging for loaders.
+    :return: wrapped function
     """
 
     @wraps(func)

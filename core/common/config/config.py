@@ -1,16 +1,17 @@
 import json
 import logging
 import os
-
 from pathlib import Path
 from typing import Mapping
 
+from core.common.consts import CONFIGS_DIR
 from core.common.types import (
-    Modes,
     Devices,
     TaskTypes,
     DataTypes,
 )
+from core.utils.helpers import get_project_root, snake_to_camel
+from core.utils.validations import is_implemented_type
 
 
 class AttrDict(dict):
@@ -141,6 +142,8 @@ class Config(AttrDict):
 
 class DefaultConfig(Config):
     def __init__(self):
+        super(DefaultConfig).__init__()
+
         # ==================== General settings ====================
         self.run = None
         self.device = Devices.CPU
@@ -192,9 +195,6 @@ class DefaultConfig(Config):
         self.weight_decay = None
         self.scheduler = None
 
-        # ============== Bound all the applied settings ==============
-        super(DefaultConfig).__init__()
-
     @staticmethod
     def for_regression(metric="MAE", data_type="images"):
         regression_config = DefaultConfig()
@@ -202,9 +202,44 @@ class DefaultConfig(Config):
         regression_config.num_outputs = 1
         regression_config.metrics.append(metric)
 
-        if data_type in iter(DataTypes.value):
-            regression_config.data_type = DataTypes[data_type]
+        if is_implemented_type(data_type, DataTypes):
+            regression_config.data_type = DataTypes[snake_to_camel(data_type.lower())]
             return regression_config
 
         regression_config.data_type = DataTypes.Custom
         return regression_config
+
+    @staticmethod
+    def for_classification(metric="CrossEntropyLoss", data_type="images", num_classes=2):
+        classification_config = DefaultConfig()
+        classification_config.task_type = TaskTypes.Classification
+        classification_config.num_outputs = num_classes
+        classification_config.metrics.append(metric)
+
+        for implemented_type in DataTypes:
+            if data_type.casefold() == implemented_type.casefold():
+                classification_config.data_type = DataTypes[snake_to_camel(data_type)]
+            return classification_config
+
+        classification_config.data_type = DataTypes.Custom
+        return classification_config
+
+
+def load_configuration() -> Config:
+    root = get_project_root()
+    config_paths = (root / CONFIGS_DIR).glob('**/*.json')
+    config_paths = list(config_paths)
+
+    if not config_paths:
+        error = "Can't locate configuration files. Place `*.json` in `{}` first!"
+        error = error.format(CONFIGS_DIR)
+        logging.error(error)
+        raise FileNotFoundError(error)
+
+    config = Config()
+
+    for config_path in config_paths:
+        config.add_file(config_path)
+
+    config.load()
+    return config

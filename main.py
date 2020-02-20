@@ -1,6 +1,6 @@
-from config.config_configurator import ConfigConfigurator
+from core.common.config.config import load_configuration
+from core.common.config.config_configurator import ConfigConfigurator
 from core.common.modules.model_builder import ModelBuilder
-from core.utils.helpers import load_configuration
 
 
 def main():

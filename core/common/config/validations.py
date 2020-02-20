@@ -4,7 +4,6 @@ from core.common.config import Config
 from core.common.consts import TORCH_EXTENSIONS
 from core.common.decorators import config_validation
 from core.common.types import Modes
-
 from core.utils.helpers import torch_loader
 from core.utils.validations import (
     is_valid_directory,
@@ -18,7 +17,8 @@ def data_validation(config: Config):
     errors = []
 
     if not config.data_folder:
-        errors.append("No `data_folder` specified in config. Please update configuration!")
+        errors.append("No `data_folder` specified in config. Please update the config!")
+        return errors
 
     full_path = Path(config.data_folder).resolve()
 
@@ -40,7 +40,7 @@ def data_validation(config: Config):
             message = "Make sure path exists and is not a file."
             errors.append(error + message)
 
-    return {'result': not any(errors), 'errors': errors}
+    return errors
 
 
 @config_validation
@@ -57,4 +57,4 @@ def checkpoint_validation(config: Config):
         error = "File {} is not a valid checkpoint. Path is not correct or file is corrupted.".format(file_path)
         errors.append(error)
 
-    return {'result': not any(errors), 'errors': errors}
+    return errors

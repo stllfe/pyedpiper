@@ -1,13 +1,14 @@
 import logging
+from abc import ABC, abstractmethod
+
 import numpy as np
 import torch
-
-from abc import ABC, abstractmethod
 from torch.utils.data import WeightedRandomSampler, DataLoader
 from torchvision.datasets.folder import (
     ImageFolder,
     DatasetFolder,
 )
+
 from core.common.config import Config
 from core.common.consts import (
     IMAGE_EXTENSIONS,
@@ -55,7 +56,7 @@ class BaseDataConfigurator(ABC):
             return self._build_dataloader(mode)
 
 
-class DataConfigurator(BaseDataConfigurator):
+class DataManager(BaseDataConfigurator):
     def _build_dataset(self, mode):
         if self._config.data_type == DataTypes.Images:
             dataset = ImageFolder(
@@ -127,7 +128,7 @@ class DataConfigurator(BaseDataConfigurator):
                 return handler
 
         error = "There is no default file loader found for extensions: {} ".format(extensions)
-        message = "Make sure extensions are supported, otherwise use your custom `DataConfigurator`"
+        message = "Make sure extensions are supported, otherwise use your custom `DataManager`"
         logging.error(error + message)
         raise NotImplementedError(error + message)
 

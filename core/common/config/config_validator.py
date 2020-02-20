@@ -2,8 +2,12 @@ from core.common.config import Config
 from core.common.modules.chain_function_applier import ChainFunctionApplier
 
 
-class ConfigValidator(ChainFunctionApplier):
-    custom_validations = []
+class ConfigValidator:
+    validations = []
 
     def __init__(self):
-        super(ConfigValidator).__init__(self.custom_validations, Config)
+        self.validator = ChainFunctionApplier(self.validations, Config)
+
+    def validate(self, config: Config):
+        results = self.validator.apply(config)
+        pass
