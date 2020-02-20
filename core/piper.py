@@ -1,12 +1,12 @@
+from core.common.modules.closest_string_finder import ClosestStringFinder
+from core.common.modules.module_loader import ModuleLoader
+from core.common.modules.object_builder import ObjectBuilder
 from core.common.config import (
     Config,
     DefaultConfig,
     ConfigValidator,
     ConfigConfigurator,
 )
-from core.common.modules.closest_string_finder import ClosestStringFinder
-from core.common.modules.module_loader import ModuleLoader
-from core.common.modules.object_builder import ObjectBuilder
 
 
 class Piper:
@@ -18,4 +18,6 @@ class Piper:
         self.module_loader = ModuleLoader()
         self.string_finder = ClosestStringFinder()
         self.object_builder = ObjectBuilder()
+
+    def validate_config(self):
         pass

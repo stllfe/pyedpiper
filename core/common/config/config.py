@@ -1,10 +1,12 @@
 import json
 import logging
 import os
+
+from datetime import datetime
 from pathlib import Path
 from typing import Mapping
 
-from core.common.consts import CONFIGS_DIR
+from core.common.consts import CONFIGS_DIR, TIMESTAMP_FORMAT
 from core.common.types import (
     Devices,
     TaskTypes,
@@ -12,36 +14,37 @@ from core.common.types import (
 )
 from core.utils.helpers import get_project_root, snake_to_camel
 from core.utils.validations import is_implemented_type
+from attrdict import AttrDict
 
 
-class AttrDict(dict):
-    """ Nested Attribute Dictionary
-
-    A class to convert a nested Dictionary into an object with key-values
-    accessible using attribute notation (AttrDict.attribute) in addition to
-    key notation (Dict["key"]). This class recursively sets Dicts to objects,
-    allowing you to recurse into nested dicts (like: AttrDict.attr.attr)
-    """
-
-    def __init__(self, mapping=None):
-        super(AttrDict, self).__init__()
-        if mapping is not None:
-            for key, value in mapping.items():
-                self.__setitem__(key, value)
-
-    def __setitem__(self, key, value):
-        if isinstance(value, dict):
-            value = AttrDict(value)
-        super(AttrDict, self).__setitem__(key, value)
-        self.__dict__[key] = value  # for code completion in editors
-
-    def __getattr__(self, item):
-        try:
-            return super().__getitem__(item)
-        except KeyError:
-            raise AttributeError(item)
-
-    __setattr__ = __setitem__
+# class AttrDict(dict):
+#     """ Nested Attribute Dictionary
+#
+#     A class to convert a nested Dictionary into an object with key-values
+#     accessible using attribute notation (AttrDict.attribute) in addition to
+#     key notation (Dict["key"]). This class recursively sets Dicts to objects,
+#     allowing you to recurse into nested dicts (like: AttrDict.attr.attr)
+#     """
+#
+#     def __init__(self, mapping=None):
+#         super(AttrDict, self).__init__()
+#         if mapping is not None:
+#             for key, value in mapping.items():
+#                 self.__setitem__(key, value)
+#
+#     def __setitem__(self, key, value):
+#         if isinstance(value, dict):
+#             value = AttrDict(value)
+#         super(AttrDict, self).__setitem__(key, value)
+#         self.__dict__[key] = value  # for code completion in editors
+#
+#     def __getattr__(self, item):
+#         try:
+#             return super().__getitem__(item)
+#         except KeyError:
+#             raise AttributeError(item)
+#
+#     __setattr__ = __setitem__
 
 
 class Config(AttrDict):
@@ -106,7 +109,7 @@ class Config(AttrDict):
             file_name = path.name.split('.')[0]
             parameters = json.load(file)
 
-        self._bound_parameters.update(parameters)
+        self.bound(parameters)
         self.__setitem__(file_name, parameters)
 
     def _repair_consistency(self, parameter, value):
@@ -124,7 +127,7 @@ class Config(AttrDict):
 
     def __getattr__(self, item):
         try:
-            super().__getitem__(item)
+            super(Config).__getitem__(item)
         except KeyError:
             return
 
@@ -137,63 +140,85 @@ class Config(AttrDict):
 
         super(Config, self).__setitem__(parameter, value)
 
-    __setattr__ = __setitem__
+    # __setattr__ = __setitem__
 
 
 class DefaultConfig(Config):
     def __init__(self):
-        super(DefaultConfig).__init__()
 
         # ==================== General settings ====================
-        self.run = None
+        self.run = None  # required
         self.device = Devices.CPU
         self.seed = None
-        self.log_to_tensorboard = True
-        self.log_to_csv = True
-        self.log_frequency = 1
-        self.save_best_state = True
-        self.save_state_every_nth_epoch = None
+
+        self.log = AttrDict()
+        self.log.to_tensorboard = True
+        self.log.to_csv = True
+        self.log.frequency = 1
+
+        self.save = AttrDict()
+        self.save.best_state = True
+        self.save.state_every_nth_epoch = None
 
         # ================== Data related settings ==================
-        self.data_root = None
-        self.data_folder = None
-        self.data_type = None
-        self.data_train = None
-        self.data_test = None
-        self.data_val = None
-        self.data_workers = os.cpu_count()
-        self.data_weighted = False
-        self.data_shuffle = True
-        self.drop_last = True
-        self.pin_memory = True
+        self.data = AttrDict()
+        self.data.root = None
+        self.data.folder = None  # required
+        self.data.type = None  # required
+        self.data.train = None  # required in train
+        self.data.test = None  # required in test
+        self.data.val = None
+        self.data.num_workers = os.cpu_count()
+        self.data.weighted = False
+        self.data.shuffle = True
+        self.data.drop_last = True
+        self.data.pin_memory = True
 
         # ================= Images related settings =================
-        self.images_size = None
-        self.images_mean = None
-        self.images_std = None
+        self.images = AttrDict()
+        self.images.size = None  # required if data_type is `images`
+        self.images.mean = None
+        self.images.std = None
 
-        # todo: Hereafter should be same blocks for images with masks
+        # todo: Hereafter should be same blocks for images with masks and other types
         # ...
 
         # ============== Running mode related settings ==============
         # General experiment settings
-        self.task_type = None
-        self.label = None
-        self.model = None
-        self.model_parameters = AttrDict()
-        self.load_from = None
-        self.num_outputs = None
+        self.task = None  # required
+        self.label = timestamp()
+        self.model = AttrDict()
+        self.model.name = None  # required
+        self.model.load_from = None  # required
+        self.model.parameters = AttrDict()
+
+        self.num_outputs = None  # depends on the task_type
         self.checkpoint = None
-        self.batch_size = None
 
         # Training specific settings
-        self.tune = True
-        self.validate = True
-        self.metrics = []
-        self.num_epochs = None
-        self.lr = None
-        self.weight_decay = None
-        self.scheduler = None
+        self.train = AttrDict()
+        self.train.tune = True
+        self.train.validate = True
+        self.train.metrics = []  # required (str names for metrics from sklearn or dicts for custom ones)
+        self.train.num_epochs = None  # required if run `train`
+        self.train.batch_size = 1
+
+        self.train.optimizer = AttrDict()
+        self.train.optimizer.name = "r_adam"
+        self.train.optimizer.load_from = "custom/optimizers/radam.py"
+
+        self.train.lr = None  # depends on optimizer
+        self.train.weight_decay = None
+        self.train.scheduler = AttrDict()
+        self.train.scheduler.name = None
+        self.train.scheduler.load_from = None
+        self.train.scheduler.parameters = AttrDict()
+
+        self.test = AttrDict()
+        self.test.batch_size = 1
+        self.test.metrics = []  # will copy train ones if provided
+
+        super(DefaultConfig).__init__()
 
     @staticmethod
     def for_regression(metric="MAE", data_type="images"):
@@ -216,13 +241,13 @@ class DefaultConfig(Config):
         classification_config.num_outputs = num_classes
         classification_config.metrics.append(metric)
 
-        for implemented_type in DataTypes:
-            if data_type.casefold() == implemented_type.casefold():
-                classification_config.data_type = DataTypes[snake_to_camel(data_type)]
+        if is_implemented_type(data_type, DataTypes):
+            classification_config.data_type = DataTypes[snake_to_camel(data_type.lower())]
             return classification_config
 
         classification_config.data_type = DataTypes.Custom
         return classification_config
+
 
 
 def load_configuration() -> Config:
@@ -231,8 +256,7 @@ def load_configuration() -> Config:
     config_paths = list(config_paths)
 
     if not config_paths:
-        error = "Can't locate configuration files. Place `*.json` in `{}` first!"
-        error = error.format(CONFIGS_DIR)
+        error = "Can't locate configuration files. Place `*.json` in `{}` first!".format(CONFIGS_DIR)
         logging.error(error)
         raise FileNotFoundError(error)
 
@@ -243,3 +267,7 @@ def load_configuration() -> Config:
 
     config.load()
     return config
+
+
+def timestamp(format=TIMESTAMP_FORMAT):
+    return datetime.now().strftime(format)

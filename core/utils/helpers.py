@@ -2,11 +2,11 @@ import logging
 import pickle
 import random
 import re
-from pathlib import Path
-
 import numpy as np
 import torch
+
 from PIL import Image
+from pathlib import Path
 from numpy import ndarray
 from torch import Tensor
 
@@ -79,3 +79,4 @@ def snake_to_camel(string: str):
 def camel_to_snake(string: str):
     string = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', string).lower()
+

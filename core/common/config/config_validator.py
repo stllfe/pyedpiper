@@ -8,6 +8,17 @@ class ConfigValidator:
     def __init__(self):
         self.validator = ChainFunctionApplier(self.validations, Config)
 
+    @staticmethod
+    def is_applicable_validation(function):
+        if ChainFunctionApplier.is_applicable(function):
+            try:
+                empty_config = Config()
+                result = function(empty_config)
+                return isinstance(result, list)
+            except Exception:
+                pass
+        return False
+
     def validate(self, config: Config):
         results = self.validator.apply(config)
-        pass
+        return results

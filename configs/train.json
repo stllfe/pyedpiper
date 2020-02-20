@@ -6,7 +6,6 @@
   "num_outputs": 1,
   "checkpoint": null,
   "tune": false,
-  "validate": true,
   "metrics": [
     "mae",
     "accuracy",

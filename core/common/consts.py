@@ -11,3 +11,6 @@ NUMPY_EXTENSIONS = ('.npy',)
 PICKLE_EXTENSIONS = ('.pickle',)
 TORCH_EXTENSIONS = ('.pth', '.pt')
 PYTHON_EXTENSIONS = ('.py',)
+
+# misc
+TIMESTAMP_FORMAT = "%d_%m_%y_at_%H_%M"

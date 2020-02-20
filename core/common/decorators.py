@@ -14,19 +14,9 @@ def config_validation(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         errors = function(*args, **kwargs)
-        return {'result': any(errors), 'errors': errors}
+        return {'result': not any(errors), 'errors': errors}
 
-    def _is_compatible_validation_fn(function):
-        if ConfigValidator.is_applicable(function):
-            try:
-                empty_config = Config()
-                result = function(empty_config)
-                return isinstance(result, list)
-            except Exception:
-                pass
-        return False
-
-    if _is_compatible_validation_fn(function):
+    if ConfigValidator.is_applicable_validation(function):
         ConfigValidator.validations.append(wrapper)
     else:
         error = "{} is not compatible function. Please check documentation at: https://github.com/stllfe/pyedpiper/"
