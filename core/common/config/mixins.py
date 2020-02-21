@@ -2,8 +2,6 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
-
-from datetime import datetime
 from pathlib import Path
 
 from core.common.consts import JSON_SCHEMA_INDENTS
@@ -69,7 +67,7 @@ def serializer(obj):
     if isinstance(obj, CallTrackerMixin):
         if hasattr(obj, "last_call"):
             delattr(obj, "last_call")
-    if isinstance(obj, KeyedObjectMixin):
+    if isinstance(obj, WrappedObjectMixin):
         return obj.value
     else:
         return obj.__dict__
@@ -118,62 +116,150 @@ class IsSetMixin(ABC):
         return not self
 
 
-class KeyedObjectMixin(ABC):
+class WrappedObjectMixin(ABC):
+    __value__ = None
+
     def __init__(self, value):
         self.value = value
 
-    def __call__(self, *args, **kwargs):
-        return self.__key__()
+    @property
+    def value(self):
+        return self.__value__
 
-    def __key__(self):
-        return self.value
+    @value.setter
+    def value(self, other):
+        self.__value__ = other
 
 
-same_type = KeyedObjectMixin
+same_type = WrappedObjectMixin
 
 
-class KeyedEqualityMixin(KeyedObjectMixin, object):
+class WrappedEqualityMixin(WrappedObjectMixin, object):
     @convert_input(same_type)
     def __eq__(self, other):
-        return self.__key__() == other.__key__()
+        return self.value == other.value
 
     @convert_input(same_type)
     def __ne__(self, other):
-        return self.__key__() != other.__key__()
+        return self.value != other.value
 
 
-class KeyedComparisonMixin(KeyedEqualityMixin):
+class WrappedComparisonMixin(WrappedEqualityMixin):
     @convert_input(same_type)
     def __lt__(self, other):
-        return self.__key__() < other.__key__()
+        return self.value < other.value
 
     @convert_input(same_type)
     def __le__(self, other):
-        return self.__key__() <= other.__key__()
+        return self.value <= other.value
 
     @convert_input(same_type)
     def __gt__(self, other):
-        return self.__key__() > other.__key__()
+        return self.value > other.value
 
     @convert_input(same_type)
     def __ge__(self, other):
-        return self.__key__() >= other.__key__()
+        return self.value >= other.value
 
 
-class KeyedHashingMixin(KeyedEqualityMixin):
+class WrappedHashingMixin(WrappedEqualityMixin):
     def __hash__(self):
-        return hash(self.__key__())
+        return hash(self.value)
 
 
-class KeyedHashingComparisonMixin(KeyedHashingMixin, KeyedComparisonMixin, KeyedEqualityMixin):
+class WrappedHashingComparisonMixin(WrappedHashingMixin, WrappedComparisonMixin, WrappedEqualityMixin):
     pass
 
 
-class CallTrackerMixin(object):
-    def __init__(self, *args, **kwargs):
-        super(CallTrackerMixin, self).__init__(*args, **kwargs)
-        self.last_call = datetime.now()
+class WrappedNumericMixin(WrappedEqualityMixin):
+    @convert_input(same_type)
+    def __add__(self, other):
+        return self.value + other.value
 
-    def __call__(self, *args, **kwargs):
-        self.last_call = datetime.now()
-        return super(CallTrackerMixin, self).__call__()
+    @convert_input(same_type)
+    def __sub__(self, other):
+        return self.value - other.value
+
+    @convert_input(same_type)
+    def __mul__(self, other):
+        return self.value * other.value
+
+    @convert_input(same_type)
+    def __truediv__(self, other):
+        return self.value / other.value
+
+    @convert_input(same_type)
+    def __mod__(self, other):
+        return self.value % other.value
+
+    @convert_input(same_type)
+    def __floordiv__(self, other):
+        return self.value // other.value
+
+    @convert_input(same_type)
+    def __pow__(self, other):
+        return self.value ** other.value
+
+    @convert_input(same_type)
+    def __lshift__(self, other):
+        return self.value >> other.value
+
+    @convert_input(same_type)
+    def __rshift__(self, other):
+        return self.value << other.value
+
+    @convert_input(same_type)
+    def __and__(self, other):
+        return self.value & other.value
+
+    @convert_input(same_type)
+    def __xor__(self, other):
+        return self.value ^ other.value
+
+    @convert_input(same_type)
+    def __or__(self, other):
+        return self.value | other.value
+
+    @convert_input(same_type)
+    def __iadd__(self, other):
+        self.value += other.value
+        return self.value
+
+    @convert_input(same_type)
+    def __contains__(self, other):
+        return other.value in self.value
+
+    @convert_input(same_type)
+    def __isub__(self, other):
+        self.value -= other.value
+        return self.value
+
+    @convert_input(same_type)
+    def __imul__(self, other):
+        self.value *= other.value
+        return self.value
+
+    @convert_input(same_type)
+    def __idiv__(self, other):
+        self.value /= other.value
+        return self.value
+
+    @convert_input(same_type)
+    def __ifloordiv__(self, other):
+        self.value //= other.value
+        return self.value
+
+    @convert_input(same_type)
+    def __imod__(self, other):
+        self.value %= other.value
+        return self.value
+
+    @convert_input(same_type)
+    def __ipow__(self, other):
+        self.value **= other.value
+        return self.value
+
+    @convert_input(same_type)
+    def __ixor__(self, other):
+        self.value ^= other.value
+        return self.value

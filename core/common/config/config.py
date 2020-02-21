@@ -3,21 +3,21 @@ import os
 from addict import Dict
 from torch import cuda
 
-from core.common.consts import CONFIGS_DIR, CONFIG_RESERVED_NAMES
-from core.utils.helpers import get_project_root, timestamp
-from core.common.types import Devices
 from core.common.config.mixins import (
     LoadMixin,
     SaveMixin,
     IsSetMixin,
-    KeyedHashingComparisonMixin,
-    CallTrackerMixin,
+    WrappedHashingComparisonMixin,
+    WrappedNumericMixin,
 )
+from core.common.consts import CONFIGS_DIR, CONFIG_RESERVED_NAMES
+from core.common.types import Devices
+from core.utils.helpers import get_project_root, timestamp
 
 
-class ConfigAttribute(KeyedHashingComparisonMixin, IsSetMixin, CallTrackerMixin):
+class ConfigAttribute(WrappedNumericMixin, WrappedHashingComparisonMixin, IsSetMixin, object):
     def __repr__(self):
-        return str(self.value)
+        return str(self.__value__)
 
 
 class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
