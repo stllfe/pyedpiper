@@ -8,6 +8,13 @@ from core.common.consts import JSON_SCHEMA_INDENTS
 from core.common.decorators import convert_input
 
 
+def serializer(obj):
+    if isinstance(obj, WrappedObjectMixin):
+        return obj.value
+    else:
+        return obj.__dict__
+
+
 class LoadMixin(ABC):
     _cache = []
     _files = []
@@ -63,23 +70,11 @@ class LoadMixin(ABC):
         pass
 
 
-def serializer(obj):
-    if isinstance(obj, CallTrackerMixin):
-        if hasattr(obj, "last_call"):
-            delattr(obj, "last_call")
-    if isinstance(obj, WrappedObjectMixin):
-        return obj.value
-    else:
-        return obj.__dict__
-
-
 class SaveMixin(ABC):
     def _dump(self, path):
         try:
             with open(str(path), 'w') as file:
-                json.dump(self, file,
-                          indent=JSON_SCHEMA_INDENTS,
-                          default=serializer)
+                json.dump(self, file, default=serializer, indent=JSON_SCHEMA_INDENTS)
             info = "Config file saved successfully to: {}".format(path)
             logging.info(info)
         except Exception as e:
@@ -95,9 +90,9 @@ class SaveMixin(ABC):
             return self._dump(path / file_name)
 
         path = Path(path).resolve()
-
         if path.is_dir():
             return self._dump(path / file_name)
+        
         elif path.is_file() and path.name.endswith(".json"):
             return self._dump(path)
 
@@ -116,11 +111,23 @@ class IsSetMixin(ABC):
         return not self
 
 
-class WrappedObjectMixin(ABC):
-    __value__ = None
+class IsRequiredMixin(object):
+    def __init__(self, required=False, *args, **kwargs):
+        super(IsRequiredMixin, self).__init__(*args, **kwargs)
+        self.__required__ = required
 
-    def __init__(self, value):
+    @property
+    def is_required(self):
+        return self.__required__
+
+
+class WrappedObjectMixin(object):
+    def __init__(self, value=None, *args, **kwargs):
+        super(WrappedObjectMixin, self).__init__(*args, **kwargs)
         self.value = value
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
         return str(self.value)
@@ -137,7 +144,7 @@ class WrappedObjectMixin(ABC):
 same_type = WrappedObjectMixin
 
 
-class WrappedEqualityMixin(WrappedObjectMixin, object):
+class WrappedEqualityMixin(WrappedObjectMixin):
     @convert_input(same_type)
     def __eq__(self, other):
         return self.value == other.value
@@ -165,13 +172,9 @@ class WrappedComparisonMixin(WrappedEqualityMixin):
         return self.value >= other.value
 
 
-class WrappedHashingMixin(WrappedEqualityMixin):
+class WrappedHashingMixin(WrappedObjectMixin):
     def __hash__(self):
         return hash(self.value)
-
-
-class WrappedHashingComparisonMixin(WrappedHashingMixin, WrappedComparisonMixin, WrappedEqualityMixin):
-    pass
 
 
 class WrappedNumericMixin(WrappedEqualityMixin):
@@ -266,3 +269,11 @@ class WrappedNumericMixin(WrappedEqualityMixin):
     def __ixor__(self, other):
         self.value ^= other.value
         return self.value
+
+    @convert_input(same_type)
+    def is_(self, other):
+        return self.value is other.value
+
+
+class WrappedPrimitive(WrappedNumericMixin, WrappedHashingMixin, WrappedComparisonMixin, WrappedEqualityMixin):
+    pass

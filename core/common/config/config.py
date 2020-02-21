@@ -7,17 +7,11 @@ from core.common.config.mixins import (
     LoadMixin,
     SaveMixin,
     IsSetMixin,
-    WrappedHashingComparisonMixin,
-    WrappedNumericMixin,
 )
+from core.common.config.parameter import Parameter
 from core.common.consts import CONFIGS_DIR, CONFIG_RESERVED_NAMES
 from core.common.types import Devices
 from core.utils.helpers import get_project_root, timestamp
-
-
-class ConfigAttribute(WrappedNumericMixin, WrappedHashingComparisonMixin, IsSetMixin, object):
-    def __repr__(self):
-        return self.__str__()
 
 
 class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
@@ -53,17 +47,17 @@ class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
         if isinstance(value, dict):
             value = Config(value)
         else:
-            value = ConfigAttribute(value)
+            value = Parameter(value)
         super(Config, self).__setitem__(key, value)
 
-        # for code completion in editors
+        # For code completion in editors
         self.__dict__[key] = value
 
     @classmethod
     def default(cls):
         config = cls()
         # ==================== General settings ====================
-        config.run = None  # required
+        config.run = Parameter(None, required=True)  # required
         config.device = Devices.GPU if cuda.is_available() else Devices.CPU
         config.seed = None
 
@@ -79,8 +73,8 @@ class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
         # ================== Data related settings ==================
         config.data = {}
         config.data.source = None
-        config.data.root_folder = None  # required
-        config.data.type = None  # required
+        config.data.root_folder = Parameter(None, required=True)  # required
+        config.data.type = Parameter(None, required=True)  # required
         config.data.train_folder = None  # required in train
         config.data.test_folder = None  # required in test
         config.data.val_folder = None
@@ -101,11 +95,11 @@ class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
 
         # ============== Running mode related settings ==============
         # General experiment settings
-        config.task = None  # required
+        config.task = Parameter(None, required=True)  # required
         config.label = timestamp()
         config.model = {}
-        config.model.name = None  # required
-        config.model.load_from = None  # required
+        config.model.name = Parameter(None, required=True)  # required
+        config.model.load_from = Parameter(None, required=True)  # required
         config.model.parameters = {}
 
         config.num_outputs = None  # depends on the task_type
@@ -115,7 +109,8 @@ class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
         config.train = {}
         config.train.tune = True
         config.train.validate = True
-        config.train.metrics = []  # required (str names for metrics from sklearn or dicts for custom ones)
+        config.train.metrics = Parameter([],
+                                         required=True)  # required (str names for metrics from sklearn or dicts for custom ones)
         config.train.num_epochs = None  # required if run `train`
         config.train.batch_size = 1
 
