@@ -82,6 +82,8 @@ class SaveMixin(ABC):
                 json.dump(self, file,
                           indent=JSON_SCHEMA_INDENTS,
                           default=serializer)
+            info = "Config file saved successfully to: {}".format(path)
+            logging.info(info)
         except Exception as e:
             error = "Can't dump file on disk! {}".format(e)
             logging.error(error)
@@ -168,8 +170,8 @@ class KeyedHashingComparisonMixin(KeyedHashingMixin, KeyedComparisonMixin, Keyed
 
 
 class CallTrackerMixin(object):
-    def __init__(self, value):
-        super(CallTrackerMixin, self).__init__(value)
+    def __init__(self, *args, **kwargs):
+        super(CallTrackerMixin, self).__init__(*args, **kwargs)
         self.last_call = datetime.now()
 
     def __call__(self, *args, **kwargs):

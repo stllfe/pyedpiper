@@ -39,10 +39,11 @@ def on_init(action):
     return decorator
 
 
-def ignore(exception: type):
+def ignore(exception: type, default=None):
     """
     Soft wrapper to avoid specific exceptions
     :param exception: type to ignore
+    :param default: value to return instead
     :return: decorated function
     """
 
@@ -51,7 +52,7 @@ def ignore(exception: type):
             try:
                 return function(*args, **kwargs)
             except exception:
-                pass
+                return default
 
         return wrapper
 

@@ -42,7 +42,7 @@ class ObjectBuilder:
 
     def build_from_map(self, of_class, objects_map, **kwargs):
         if not objects_map.get(of_class):
-            error = "Object of class `{}` is not provided in objects_map".format(of_class)
+            error = "Object of class `{}` is not provided in `objects_map`".format(of_class)
             logging.error(error)
             raise TypeError(error)
         else:

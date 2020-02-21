@@ -3,13 +3,16 @@ import os
 from addict import Dict
 from torch import cuda
 
-from core.common.config.mixins import LoadMixin, SaveMixin, IsSetMixin, KeyedHashingComparisonMixin, CallTrackerMixin
 from core.common.consts import CONFIGS_DIR, CONFIG_RESERVED_NAMES
-from core.common.decorators import ignore
-from core.common.types import (
-    Devices,
-)
 from core.utils.helpers import get_project_root, timestamp
+from core.common.types import Devices
+from core.common.config.mixins import (
+    LoadMixin,
+    SaveMixin,
+    IsSetMixin,
+    KeyedHashingComparisonMixin,
+    CallTrackerMixin,
+)
 
 
 class ConfigAttribute(KeyedHashingComparisonMixin, IsSetMixin, CallTrackerMixin):
@@ -51,13 +54,6 @@ class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
         # for code completion in editors
         self.__dict__[key] = value
 
-    @ignore((KeyError, AttributeError))
-    def __getattr__(self, item):
-        try:
-            return super(Config, self).__getitem__(item)
-        except KeyError:
-            raise AttributeError(item)
-
     @classmethod
     def default(cls):
         config = cls()
@@ -96,7 +92,7 @@ class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
         config.images.std = None
 
         # todo: Hereafter should be same blocks for images with masks and other types
-        # ...
+        # todo: ...
 
         # ============== Running mode related settings ==============
         # General experiment settings

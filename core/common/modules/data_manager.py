@@ -28,7 +28,7 @@ from core.utils.helpers import (
 
 class BaseDataConfigurator(ABC):
     def __init__(self, config: Config):
-        self._config = config
+        self.config = config
         self.datasets = {}
         self.dataloaders = {}
 
@@ -58,50 +58,50 @@ class BaseDataConfigurator(ABC):
 
 class DataManager(BaseDataConfigurator):
     def _build_dataset(self, mode):
-        if self._config.data_type == DataTypes.Images:
+        if self.config.data_type == DataTypes.Images:
             dataset = ImageFolder(
-                root=self._config.data_root,
+                root=self.config.data_root,
                 transform=self._get_transforms(mode),
             )
 
-        elif self._config.data_type == DataTypes.ImagesAndMasks:
+        elif self.config.data_type == DataTypes.ImagesAndMasks:
             # todo: implement me
             pass
 
-        elif self._config.data_type == DataTypes.Custom:
-            if self._config.data_extensions:
-                extensions = tuple(self._config.data_extensions)
+        elif self.config.data_type == DataTypes.Custom:
+            if self.config.data_extensions:
+                extensions = tuple(self.config.data_extensions)
             else:
                 extensions = '*'
 
             dataset = DatasetFolder(
-                root=self._config.data_root,
+                root=self.config.data_root,
                 transform=self._get_transforms(mode),
                 extensions=extensions,
                 loader=self._get_file_loader(extensions)
             )
         else:
-            error = '`data_type` type: {}'.format(self._config.data_type)
+            error = '`data_type` type: {}'.format(self.config.data_type)
             logging.error(error)
             raise NotImplementedError(error)
         return dataset
 
     def _build_dataloader(self, mode):
         dataset = self.get_dataset(mode)
-        is_weighted = self._config.data_weighted
+        is_weighted = self.config.data_weighted
         sampler = self._get_weighted_sampler(dataset) if is_weighted else None
-        shuffle = self._config.data_shuffle if not sampler else False
+        shuffle = self.config.data_shuffle if not sampler else False
 
         return DataLoader(
             dataset=dataset,
             sampler=sampler,
             shuffle=shuffle,
 
-            batch_size=self._config.batch_size,
-            num_workers=self._config.num_workers,
-            pin_memory=self._config.pin_memory,
+            batch_size=self.config.batch_size,
+            num_workers=self.config.num_workers,
+            pin_memory=self.config.pin_memory,
 
-            drop_last=self._config.drop_last
+            drop_last=self.config.drop_last
         )
 
     def _get_transforms(self, mode: Modes):
