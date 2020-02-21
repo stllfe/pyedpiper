@@ -17,7 +17,7 @@ from core.utils.helpers import get_project_root, timestamp
 
 class ConfigAttribute(WrappedNumericMixin, WrappedHashingComparisonMixin, IsSetMixin, object):
     def __repr__(self):
-        return str(self.__value__)
+        return self.__str__()
 
 
 class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
