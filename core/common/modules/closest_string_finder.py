@@ -1,7 +1,6 @@
 import re
-from typing import List, Tuple, Iterable
-
 import numpy as np
+from typing import List, Tuple, Iterable
 
 
 class ClosestStringFinder:
@@ -20,7 +19,7 @@ class ClosestStringFinder:
         """Calculates both Jaccard and Levenshtein metrics and returns their normalized combination.
         :param left: first string
         :param right: second string
-        :return: (1 - jaccard_index) * levenshtein_distance
+        :return: (1 - jaccard_index) * (levenshtein_distance / len(right))
         """
         j = self.jaccard_index(left, right)
         l = self.levenshtein_distance(left, right) / len(right)
@@ -75,11 +74,11 @@ class ClosestStringFinder:
         return current_row[left_len]
 
     def find_closest(self, needle: str, collection: Iterable[str], precision=4) -> Tuple[List[str], float]:
-        """Finds needle in collection.
-        :param needle: String to be found
+        """Finds the closes string from collection.
+        :param needle: String to measure the distance against
         :param collection: Any iterable containing strings
-        :param precision: Floating point precision of normalized distances
-        :return: Tuple: List of closest strings from collection and their `normalized_distance`.
+        :param precision: Floating point precision for normalized distances
+        :return: Tuple: List of closest strings from collection and their `normalized_distance()`s.
         """
         distances = {
             string: round(self.normalized_distance(needle, string), precision)

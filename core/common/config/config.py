@@ -3,7 +3,7 @@ import os
 from addict import Dict
 from torch import cuda
 
-from core.common.config.mixins import LoadMixin, SaveMixin
+from core.common.config.mixins import LoadMixin, SaveMixin, IsSetMixin, KeyedHashingComparisonMixin, CallTrackerMixin
 from core.common.consts import CONFIGS_DIR, CONFIG_RESERVED_NAMES
 from core.common.decorators import ignore
 from core.common.types import (
@@ -15,14 +15,22 @@ from core.utils.helpers import get_project_root, timestamp
 def dict_to_none(result):
     if result == {}:
         return None
-    else:
-        return result
+    return result
 
 
-class Config(SaveMixin, LoadMixin, Dict):
+class ConfigAttribute(KeyedHashingComparisonMixin, IsSetMixin, CallTrackerMixin):
+    def __repr__(self):
+        return str(self.value)
+
+
+class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
     """ Loads json files as AttrDicts and can be used as a basic dict as well.
-    NOTE: It returns `None` in case of a missing key.
-    Its actually more natural for configuration file as it basically equals to `not stated`.
+    NOTE: It returns an empty dict `{}` in case of a missing key.
+    Its actually more natural for configuration file because of the nested manner.
+
+    The usage is something like:
+    >>> not config.data.root
+    >>> True
     """
 
     def _process_cache(self):
@@ -41,7 +49,9 @@ class Config(SaveMixin, LoadMixin, Dict):
 
     def __setitem__(self, key, value):
         if isinstance(value, dict):
-            value = self.__class__(value)
+            value = Config(value)
+        else:
+            value = ConfigAttribute(value)
         super(Config, self).__setitem__(key, value)
 
         # for code completion in editors

@@ -2,9 +2,12 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
+
+from datetime import datetime
 from pathlib import Path
 
 from core.common.consts import JSON_SCHEMA_INDENTS
+from core.common.decorators import convert_input
 
 
 class LoadMixin(ABC):
@@ -26,10 +29,6 @@ class LoadMixin(ABC):
         if path not in self._files:
             self._files.append(path)
         self._order_files_by_date_modified()
-
-    def _load_files(self):
-        for file in self._files:
-            self._load_file(file)
 
     def load(self, path=None):
         if path:
@@ -57,16 +56,32 @@ class LoadMixin(ABC):
             parameters = json.load(file)
             self._cache.append((file_name, parameters))
 
+    def _load_files(self):
+        for file in self._files:
+            self._load_file(file)
+
     @abstractmethod
     def _process_cache(self):
         pass
+
+
+def serializer(obj):
+    if isinstance(obj, CallTrackerMixin):
+        if hasattr(obj, "last_call"):
+            delattr(obj, "last_call")
+    if isinstance(obj, KeyedObjectMixin):
+        return obj.value
+    else:
+        return obj.__dict__
 
 
 class SaveMixin(ABC):
     def _dump(self, path):
         try:
             with open(str(path), 'w') as file:
-                json.dump(self, file, indent=JSON_SCHEMA_INDENTS)
+                json.dump(self, file,
+                          indent=JSON_SCHEMA_INDENTS,
+                          default=serializer)
         except Exception as e:
             error = "Can't dump file on disk! {}".format(e)
             logging.error(error)
@@ -89,3 +104,74 @@ class SaveMixin(ABC):
         error = "Can't save file with path: `{}`. Make sure path is correct!".format(path)
         logging.error(error)
         raise NotADirectoryError(error)
+
+
+class IsSetMixin(ABC):
+    @property
+    def is_set(self):
+        return bool(self)
+
+    @property
+    def is_not_set(self):
+        return not self
+
+
+class KeyedObjectMixin(ABC):
+    def __init__(self, value):
+        self.value = value
+
+    def __call__(self, *args, **kwargs):
+        return self.__key__()
+
+    def __key__(self):
+        return self.value
+
+
+same_type = KeyedObjectMixin
+
+
+class KeyedEqualityMixin(KeyedObjectMixin, object):
+    @convert_input(same_type)
+    def __eq__(self, other):
+        return self.__key__() == other.__key__()
+
+    @convert_input(same_type)
+    def __ne__(self, other):
+        return self.__key__() != other.__key__()
+
+
+class KeyedComparisonMixin(KeyedEqualityMixin):
+    @convert_input(same_type)
+    def __lt__(self, other):
+        return self.__key__() < other.__key__()
+
+    @convert_input(same_type)
+    def __le__(self, other):
+        return self.__key__() <= other.__key__()
+
+    @convert_input(same_type)
+    def __gt__(self, other):
+        return self.__key__() > other.__key__()
+
+    @convert_input(same_type)
+    def __ge__(self, other):
+        return self.__key__() >= other.__key__()
+
+
+class KeyedHashingMixin(KeyedEqualityMixin):
+    def __hash__(self):
+        return hash(self.__key__())
+
+
+class KeyedHashingComparisonMixin(KeyedHashingMixin, KeyedComparisonMixin, KeyedEqualityMixin):
+    pass
+
+
+class CallTrackerMixin(object):
+    def __init__(self, value):
+        super(CallTrackerMixin, self).__init__(value)
+        self.last_call = datetime.now()
+
+    def __call__(self, *args, **kwargs):
+        self.last_call = datetime.now()
+        return super(CallTrackerMixin, self).__call__()

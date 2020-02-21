@@ -1,13 +1,13 @@
 import logging
+
 from importlib import import_module
 from importlib.util import (
     module_from_spec,
     spec_from_file_location,
 )
-from pathlib import Path
 
 from core.common.consts import PYTHON_EXTENSIONS
-from core.utils.helpers import get_project_root
+from core.utils.helpers import get_absolute_path, get_relative_path
 from core.utils.validations import is_valid_file
 
 
@@ -84,21 +84,3 @@ def _resolve_local_module(module_path):
         error = "Tried to resolve module path `{}` which appears to be nonlocal".format(module_path)
         logging.debug(error)
         raise TypeError(error)
-
-
-def get_absolute_path(path: str) -> Path:
-    """
-    Returns the full path from posix one
-    :param path: str or Path-like object
-    :return: Path object
-    """
-    return Path(path).resolve()
-
-
-def get_relative_path(path: str) -> Path:
-    """
-    Returns the path attached to project root
-    :param path: str or Path-like object
-    :return: Path object
-    """
-    return (get_project_root() / Path(path)).resolve()
