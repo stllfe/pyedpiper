@@ -21,9 +21,14 @@ class ConfigAttribute(KeyedHashingComparisonMixin, IsSetMixin, CallTrackerMixin)
 
 
 class Config(IsSetMixin, SaveMixin, LoadMixin, Dict):
-    """ Loads json files as AttrDicts and can be used as a basic dict as well.
+    """Subclass of addict's Dict class (https://github.com/mewwts/addict).
+    Loads json files as dict-like objects providing both `Config["key"]` and `Config.key` item access.
+    Has some unique features such as on-the-fly type conversion for leaf attributes.
+    Check https://github.com/stllfe/pyedpiper to learn more.
+
     NOTE: It returns an empty dict `{}` in case of a missing key.
-    Its actually more natural for configuration file because of the nested manner.
+    Its actually more natural for a configuration file because of its nested nature.
+    Moreover, it basically stands for `not stated` and is easy to check right in client code.
 
     The usage is something like:
     >>> not config.data.root
