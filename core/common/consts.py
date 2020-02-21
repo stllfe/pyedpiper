@@ -13,4 +13,6 @@ TORCH_EXTENSIONS = ('.pth', '.pt')
 PYTHON_EXTENSIONS = ('.py',)
 
 # misc
+JSON_SCHEMA_INDENTS = 2
 TIMESTAMP_FORMAT = "%d_%m_%y_at_%H_%M"
+CONFIG_RESERVED_NAMES = ['default', 'config', 'main', 'base']

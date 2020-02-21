@@ -1,14 +1,34 @@
+from functools import wraps
 from pathlib import Path
 
-from core.common.config import Config
+from core.common.config import Config, ConfigValidator
 from core.common.consts import TORCH_EXTENSIONS
-from core.common.decorators import config_validation
 from core.common.types import Modes
 from core.utils.helpers import torch_loader
 from core.utils.validations import (
     is_valid_directory,
     is_valid_file,
 )
+
+
+def config_validation(function):
+    """
+    Decorator function to add config validations.
+    """
+
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        errors = function(*args, **kwargs)
+        return {'result': not any(errors), 'errors': errors}
+
+    if ConfigValidator.is_applicable_validation(function):
+        if function not in ConfigValidator.validations:
+            ConfigValidator.validations.append(wrapper)
+        return function
+
+    error = "{} is not compatible function. Please check documentation at: https://github.com/stllfe/pyedpiper/"
+    error = error.format(function, Config)
+    raise TypeError(error)
 
 
 @config_validation

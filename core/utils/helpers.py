@@ -2,13 +2,16 @@ import logging
 import pickle
 import random
 import re
+from datetime import datetime
+from pathlib import Path
+
 import numpy as np
 import torch
-
 from PIL import Image
-from pathlib import Path
 from numpy import ndarray
 from torch import Tensor
+
+from core.common.consts import TIMESTAMP_FORMAT
 
 
 def set_random_seed(seed):
@@ -80,3 +83,6 @@ def camel_to_snake(string: str):
     string = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', string).lower()
 
+
+def timestamp(format=TIMESTAMP_FORMAT):
+    return datetime.now().strftime(format)
