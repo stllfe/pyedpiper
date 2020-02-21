@@ -12,12 +12,6 @@ from core.common.types import (
 from core.utils.helpers import get_project_root, timestamp
 
 
-def dict_to_none(result):
-    if result == {}:
-        return None
-    return result
-
-
 class ConfigAttribute(KeyedHashingComparisonMixin, IsSetMixin, CallTrackerMixin):
     def __repr__(self):
         return str(self.value)
