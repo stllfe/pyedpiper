@@ -14,7 +14,7 @@ def is_valid_file(path: Union[str, Path], allowed_extensions: Iterable[str]) -> 
     return path.exists() and path.is_file() and path.suffix in allowed_extensions
 
 
-def is_implemented_type(value: str, enumeration: type(StrEnum)):
+def is_implemented_type(value: str, enumeration: type(StrEnum)) -> bool:
     for implemented_type in enumeration:
         if value.casefold() == implemented_type.casefold():
             return True
