@@ -1,23 +1,19 @@
 import json
 import logging
 import os
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
+from typing import List
 
 from core.common.consts import JSON_SCHEMA_INDENTS
-from core.common.decorators import convert_input
+from core.common.decorators import ignore
 
 
-def serializer(obj):
-    if isinstance(obj, WrappedObjectMixin):
-        return obj.value
-    else:
-        return obj.__dict__
-
-
-class LoadMixin(ABC):
-    _cache = []
-    _files = []
+class LoadMixin(object):
+    def __init__(self):
+        super(LoadMixin, self).__init__()
+        self._cache = []
+        self._files = []
 
     files = property()
 
@@ -70,11 +66,11 @@ class LoadMixin(ABC):
         pass
 
 
-class SaveMixin(ABC):
+class SaveMixin(object):
     def _dump(self, path):
         try:
             with open(str(path), 'w') as file:
-                json.dump(self, file, default=serializer, indent=JSON_SCHEMA_INDENTS)
+                json.dump(self, file, indent=JSON_SCHEMA_INDENTS)
             info = "Config file saved successfully to: {}".format(path)
             logging.info(info)
         except Exception as e:
@@ -92,7 +88,7 @@ class SaveMixin(ABC):
         path = Path(path).resolve()
         if path.is_dir():
             return self._dump(path / file_name)
-        
+
         elif path.is_file() and path.name.endswith(".json"):
             return self._dump(path)
 
@@ -101,179 +97,70 @@ class SaveMixin(ABC):
         raise NotADirectoryError(error)
 
 
-class IsSetMixin(ABC):
-    @property
-    def is_set(self):
-        return bool(self)
+class IsSetMixin(object):
+    @ignore(AttributeError, default=False)
+    def is_set(self, item: str) -> bool:
+        """
+        Get all the attributes recursively and validate them according to python's
+        "truthy" and "falsy" evaluations, i. e. `bool(attribute)`.
+        :param item: (str) - one or more attributes with dot notation "attr1.attr2.'...'.attrN"
+        :return: (bool) - whether or not all the attributes evaluate to True
+        """
+        item = item.strip().lower()
+        results = []
+        for item in get_attributes_recursively(self, item):
+            results.append(bool(item))
+        return all(results)
 
-    @property
-    def is_not_set(self):
-        return not self
-
-
-class IsRequiredMixin(object):
-    def __init__(self, required=False, *args, **kwargs):
-        super(IsRequiredMixin, self).__init__(*args, **kwargs)
-        self.__required__ = required
-
-    @property
-    def is_required(self):
-        return self.__required__
-
-
-class WrappedObjectMixin(object):
-    def __init__(self, value=None, *args, **kwargs):
-        super(WrappedObjectMixin, self).__init__(*args, **kwargs)
-        self.value = value
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return str(self.value)
-
-    @property
-    def value(self):
-        return self.__value__
-
-    @value.setter
-    def value(self, other):
-        self.__value__ = other
+    def is_not_set(self, item):
+        return not self.is_set(item)
 
 
-same_type = WrappedObjectMixin
+class RequireMixin(object):
+    def __init__(self, *args, **kwargs):
+        super(RequireMixin, self).__init__()
+        self._required = {}
+
+    required = property()
+
+    @required.getter
+    def required(self):
+        return self._required
+
+    def set_required(self, item: str, value: bool = True):
+        self._validate_input(item, value)
+        item = item.strip().lower()
+        items = item.split('.')
+        # setting the initial value
+
+        self._required[item] = value
+        # todo: handle setting requirements recursively
+        # e.g if `model.load_from` is required, then `model` itself is required too
+        # but the opposite is not true in general case, so we setdefault instead of straight setting
+        for item in reversed(items[:-1]):
+            self._required.setdefault(item, value)
+        # todo: make recursively update each instance's dict within the container
+
+    @staticmethod
+    def _validate_input(item: str, value: bool):
+        if not isinstance(item, str) or not isinstance(value, bool):
+            error = "`item` should be of type `str` and `value` of type `bool`. Got {}, {} instead."
+            error = error.format(type(item), type(value))
+            logging.error(error)
+            raise TypeError(error)
+
+    @ignore(KeyError, default=False)
+    def is_required(self, item: str) -> bool:
+        item = item.strip().lower()
+        return self._required[item]
 
 
-class WrappedEqualityMixin(WrappedObjectMixin):
-    @convert_input(same_type)
-    def __eq__(self, other):
-        return self.value == other.value
+def get_attributes_recursively(obj, attributes: str) -> List:
+    attributes = attributes.split('.')
+    current = obj
+    results = []
+    for attribute in attributes:
+        current = getattr(current, attribute)
+        results.append(current)
 
-    @convert_input(same_type)
-    def __ne__(self, other):
-        return self.value != other.value
-
-
-class WrappedComparisonMixin(WrappedEqualityMixin):
-    @convert_input(same_type)
-    def __lt__(self, other):
-        return self.value < other.value
-
-    @convert_input(same_type)
-    def __le__(self, other):
-        return self.value <= other.value
-
-    @convert_input(same_type)
-    def __gt__(self, other):
-        return self.value > other.value
-
-    @convert_input(same_type)
-    def __ge__(self, other):
-        return self.value >= other.value
-
-
-class WrappedHashingMixin(WrappedObjectMixin):
-    def __hash__(self):
-        return hash(self.value)
-
-
-class WrappedNumericMixin(WrappedEqualityMixin):
-    @convert_input(same_type)
-    def __add__(self, other):
-        return self.value + other.value
-
-    @convert_input(same_type)
-    def __sub__(self, other):
-        return self.value - other.value
-
-    @convert_input(same_type)
-    def __mul__(self, other):
-        return self.value * other.value
-
-    @convert_input(same_type)
-    def __truediv__(self, other):
-        return self.value / other.value
-
-    @convert_input(same_type)
-    def __mod__(self, other):
-        return self.value % other.value
-
-    @convert_input(same_type)
-    def __floordiv__(self, other):
-        return self.value // other.value
-
-    @convert_input(same_type)
-    def __pow__(self, other):
-        return self.value ** other.value
-
-    @convert_input(same_type)
-    def __lshift__(self, other):
-        return self.value >> other.value
-
-    @convert_input(same_type)
-    def __rshift__(self, other):
-        return self.value << other.value
-
-    @convert_input(same_type)
-    def __and__(self, other):
-        return self.value & other.value
-
-    @convert_input(same_type)
-    def __xor__(self, other):
-        return self.value ^ other.value
-
-    @convert_input(same_type)
-    def __or__(self, other):
-        return self.value | other.value
-
-    @convert_input(same_type)
-    def __iadd__(self, other):
-        self.value += other.value
-        return self.value
-
-    @convert_input(same_type)
-    def __contains__(self, other):
-        return other.value in self.value
-
-    @convert_input(same_type)
-    def __isub__(self, other):
-        self.value -= other.value
-        return self.value
-
-    @convert_input(same_type)
-    def __imul__(self, other):
-        self.value *= other.value
-        return self.value
-
-    @convert_input(same_type)
-    def __idiv__(self, other):
-        self.value /= other.value
-        return self.value
-
-    @convert_input(same_type)
-    def __ifloordiv__(self, other):
-        self.value //= other.value
-        return self.value
-
-    @convert_input(same_type)
-    def __imod__(self, other):
-        self.value %= other.value
-        return self.value
-
-    @convert_input(same_type)
-    def __ipow__(self, other):
-        self.value **= other.value
-        return self.value
-
-    @convert_input(same_type)
-    def __ixor__(self, other):
-        self.value ^= other.value
-        return self.value
-
-    @convert_input(same_type)
-    def is_(self, other):
-        return self.value is other.value
-
-
-class WrappedPrimitive(WrappedNumericMixin, WrappedHashingMixin, WrappedComparisonMixin, WrappedEqualityMixin):
-    pass
+    return results
