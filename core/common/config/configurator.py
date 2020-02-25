@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 from copy import deepcopy
-
 from core.common.config import Config
 
 

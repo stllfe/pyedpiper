@@ -41,20 +41,15 @@ class ModuleLoader:
 
     @staticmethod
     def load_module(module_path: str):
-        try:
-            if _is_local_module(module_path):
-                module_path = _resolve_local_module(module_path)
-                logging.info("Loading local module `{}`".format(module_path))
-                module = ModuleLoader.load_local_module(module_path)
-            elif _is_external_module(module_path):
-                module = ModuleLoader.load_external_module(module_path)
-            else:
-                error = "Provided module path is incorrect!"
-                raise NotImplementedError(error)
-        except Exception as e:
-            error = "Can't load module `{}`. ".format(module_path)
-            message = "{}".format(e)
-            raise Exception(error + message)
+        if _is_local_module(module_path):
+            module_path = _resolve_local_module(module_path)
+            logging.info("Loading local module `{}`".format(module_path))
+            module = ModuleLoader.load_local_module(module_path)
+        elif _is_external_module(module_path):
+            module = ModuleLoader.load_external_module(module_path)
+        else:
+            error = "Can't load module `{}`. Provided module path is incorrect!".format(module_path)
+            raise ModuleNotFoundError(error)
         logging.info("Module `{}` loaded successfully!".format(module))
         return module
 
