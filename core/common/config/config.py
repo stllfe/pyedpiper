@@ -14,7 +14,7 @@ from core.common.types import Devices
 from core.utils.helpers import get_project_root, timestamp
 
 
-class Config(RequireMixin, IsSetMixin, SaveMixin, LoadMixin, Dict):
+class Config(LoadMixin, SaveMixin, IsSetMixin, Dict):
     """
     Subclass of addict's Dict class (https://github.com/mewwts/addict).
     Load json files as dict-like objects or save them as you wish.
@@ -31,8 +31,14 @@ class Config(RequireMixin, IsSetMixin, SaveMixin, LoadMixin, Dict):
     """
 
     def __init__(self, *args, **kwargs):
-        object.__init__(self)
+        # workaround to separate class methods and actual attributes from dict keys
+        self._set_immutable(True)
+        LoadMixin.__init__(self, *args, **kwargs)
+        self._set_immutable(False)
         Dict.__init__(self, *args, **kwargs)
+
+    def _set_immutable(self, value: bool):
+        object.__setattr__(self, "__immutable__", value)
 
     def _process_cache(self):
         for data in self._cache:
@@ -48,13 +54,26 @@ class Config(RequireMixin, IsSetMixin, SaveMixin, LoadMixin, Dict):
         self._cache.clear()
         self._files.clear()
 
-    def __setitem__(self, key, value):
+    def _validate_attr(self, name):
+        return name not in self.__dict__
+
+    def __setattr__(self, name, value):
+        if getattr(self, '__immutable__'):
+            object.__setattr__(self, name, value)
+            return
+        if self._validate_attr(name):
+            try:
+                Dict.__setattr__(self, name, value)
+                return
+            except AttributeError:
+                pass
+        raise AttributeError("'Config' object attribute "
+                             "'{}' is read-only".format(name))
+
+    def __setitem__(self, name, value):
         if isinstance(value, dict):
             value = Config(value)
-        super(Config, self).__setitem__(key, value)
-
-        # For code completion in editors
-        self.__dict__[key] = value
+        Dict.__setitem__(self, name, value)
 
     @classmethod
     def default(cls):
@@ -94,11 +113,11 @@ class Config(RequireMixin, IsSetMixin, SaveMixin, LoadMixin, Dict):
 
         # ============== Running mode related settings ==============
         # General experiment settings
-        config.set_required("task")
+        # config.set_required("task")
         config.task = None  # required
         config.label = timestamp()
 
-        config.set_required("model")
+        # config.set_required("model")
         config.model.name = None  # required
         config.model.load_from = None  # required
         config.model.parameters = {}
@@ -107,7 +126,7 @@ class Config(RequireMixin, IsSetMixin, SaveMixin, LoadMixin, Dict):
         config.checkpoint = None
 
         # Training specific settings
-        config.set_required("train")
+        # config.set_required("train")
         config.train.tune = True
         config.train.validate = True
         config.train.metrics = []  # required (str names for metrics from sklearn or dicts for custom ones)
@@ -139,6 +158,3 @@ def load_configuration() -> Config:
 
 if __name__ == "__main__":
     config = Config.default()
-    assert config.is_required("data.num_workers") is False
-    config.set_required("data.num_workers")
-    assert config.is_required("data.num_workers") is True

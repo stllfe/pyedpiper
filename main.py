@@ -4,7 +4,7 @@ from core.common.modules.model_builder import ModelBuilder
 
 
 def main():
-    config = ConfigConfigurator(load_configuration()).configure()
+    config = load_configuration()
     model = ModelBuilder(config).build()
     model.run()
     print()

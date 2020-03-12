@@ -10,14 +10,11 @@ from core.common.decorators import ignore
 
 
 class LoadMixin(object):
-    def __init__(self):
-        super(LoadMixin, self).__init__()
+    def __init__(self, *args, **kwargs):
         self._cache = []
         self._files = []
 
-    files = property()
-
-    @files.getter
+    @property
     def files(self):
         return self._files
 
@@ -118,7 +115,6 @@ class IsSetMixin(object):
 
 class RequireMixin(object):
     def __init__(self, *args, **kwargs):
-        super(RequireMixin, self).__init__()
         self._required = {}
 
     required = property()
