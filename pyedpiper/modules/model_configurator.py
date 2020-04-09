@@ -5,7 +5,7 @@ import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
 
-from utils import instantiate, average_metrics, average_and_log_metrics
+from ..utils import instantiate, average_metrics, average_and_log_metrics
 
 log = logging.getLogger(__name__)
 

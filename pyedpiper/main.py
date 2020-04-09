@@ -4,7 +4,7 @@ import logging
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
 
-from pyedpiper.modules.model_configurator import (
+from .modules.model_configurator import (
     DataloadersConfigurator,
     OptimizersConfigurator,
     EvaluationsConfigurator,

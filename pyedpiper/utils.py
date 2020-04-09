@@ -5,8 +5,8 @@ import numpy as np
 import torch
 from omegaconf import DictConfig
 
-from pyedpiper.modules.module_loader import ModuleLoader
-from pyedpiper.modules.object_builder import ObjectBuilder
+from .modules.module_loader import ModuleLoader
+from .modules.object_builder import ObjectBuilder
 
 log = logging.getLogger(__name__)
 
