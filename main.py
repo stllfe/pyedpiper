@@ -1,14 +1,13 @@
-from src.utils.helpers import (
-    load_configuration,
-    get_engines
-)
+from core.common.config.config import load_configuration
+from core.common.config.configurator import ConfigConfigurator
+from core.common.modules.model_builder import ModelBuilder
 
 
 def main():
-    config = load_configuration()
-    #engines = get_engines(config)
-
-    print(config.custom)
+    config = ConfigConfigurator(load_configuration()).configure()
+    model = ModelBuilder(config).build()
+    model.run()
+    print()
 
 
 if __name__ == '__main__':
