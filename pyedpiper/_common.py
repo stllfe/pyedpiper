@@ -5,10 +5,10 @@ from typing import Any, Tuple, Optional, Iterable
 
 import numpy as np
 import torch
-from _core.object_builder import ObjectCaller
 from omegaconf import DictConfig, OmegaConf
 
-from _core.module_loader import ModuleLoader
+from ._core.module_loader import ModuleLoader
+from ._core.object_caller import ObjectCaller
 
 log = logging.getLogger(__name__)
 

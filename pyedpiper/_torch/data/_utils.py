@@ -1,6 +1,6 @@
 import numpy as np
 
-from _common import as_numpy
+from pyedpiper._common import as_numpy
 
 
 def get_class_weights(targets, use_max=True):
