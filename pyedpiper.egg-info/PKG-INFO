@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: pyedpiper
+Version: 0.1.5
+Summary: Small set of handy tools to compliment your ML pipeline and minimize a boilerplate.
+Home-page: https://github.com/stllfe/pyedpiper
+Author: Oleg Pavlovich
+Author-email: pavlovi4.o@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
