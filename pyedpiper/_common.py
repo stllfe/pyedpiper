@@ -1,73 +1,64 @@
 import logging
-import numpy as np
 import os
-
 import random
-import torch
-
-from omegaconf import DictConfig, OmegaConf
 from typing import Any, Tuple, Optional, Iterable
 
-from ._core.module_loader import ModuleLoader
-from ._core.object_builder import ObjectBuilder
+import numpy as np
+import torch
+from _core.object_builder import ObjectCaller
+from omegaconf import DictConfig, OmegaConf
 
+from _core.module_loader import ModuleLoader
 
 log = logging.getLogger(__name__)
 
-
-def get_class_weights(targets, use_max=True):
-    # todo: add a docstring
-    targets = np.array(targets)
-    class_sample_count = np.array([len(np.where(targets == t)[0]) for t in np.unique(targets)])
-
-    if use_max:
-        # (number of occurrences in most common class) / (number of occurrences in rare classes)
-        max_class_count = np.max(class_sample_count)
-        return max_class_count / class_sample_count
-
-    return 1. / class_sample_count
+_TARGET_NAME = "target"
+_PARAMS_NAME = "params"
 
 
-def resolve_class(class_config: DictConfig) -> type:
+def resolve_target(target_config: DictConfig) -> type:
     """
     Get concrete class from config entry.
-    :param class_config: config entry with 'class', 'params' and (optionally) 'module' specified
+    :param target_config: config entry with 'class', 'params' and (optionally) 'module' specified
     :return: `type` object of corresponding class
     """
-    if 'class' not in class_config or class_config['class'] is None:
-        error = "No 'class' property was provided in config."
+    if _TARGET_NAME not in target_config or target_config[_TARGET_NAME] is None:
+        error = f"No {_TARGET_NAME} property was provided in config."
         log.error(error)
         raise ValueError(error)
 
-    cls, source = _resolve_class_module(class_config)
+    cls, source = _resolve_target_module(target_config)
 
     try:
         return getattr(source, cls)
     except AttributeError as e:
-        error = "Class '{}' not in module '{}'".format(cls, class_config.module)
+        error = "{} '{}' not in module '{}'".format(_TARGET_NAME.title(), cls, target_config.module)
         log.error(error)
         raise e
 
 
-def _resolve_class_module(class_config: DictConfig) -> Tuple[Any, Any]:
+def _resolve_target_module(class_config: DictConfig) -> Tuple[Any, Any]:
     # Assuming that module and class are written in dot notation
     if 'module' not in class_config or class_config.module is None:
-        module, _, cls = class_config['class'].rpartition('.')
+        module, _, cls = class_config[_TARGET_NAME].rpartition('.')
     else:
         module = class_config.module
-        cls = class_config['class']
+        cls = class_config[_TARGET_NAME]
     source = ModuleLoader.load_module(module)
     return cls, source
 
 
-def instantiate(class_config: DictConfig, **kwargs) -> Any:
-    """
-    Resolve 'class' and build object from 'params' config keys.
-    """
-    assert class_config is not None, "Input config is `None`"
+def instantiate(target_config: DictConfig, **kwargs) -> Any:
+    """Same as `call()`"""
+    return call(target_config, **kwargs)
 
-    cls = resolve_class(class_config)
-    params = class_config.params if "params" in class_config else OmegaConf.create()
+
+def call(target_config: DictConfig, **kwargs) -> Any:
+    """Resolve the module and call the object with 'params' config keys."""
+    assert target_config is not None, "Input config is `None`"
+
+    cls = resolve_target(target_config)
+    params = target_config.params if _PARAMS_NAME in target_config else OmegaConf.create()
 
     # If params are None, make an empty dict as well
     params = params or OmegaConf.create()
@@ -79,7 +70,7 @@ def instantiate(class_config: DictConfig, **kwargs) -> Any:
     params = OmegaConf.to_container(params, resolve=True)
     params.update(kwargs)
 
-    return ObjectBuilder.build_from_kwargs(cls, **params)
+    return ObjectCaller.call_from_kwargs(cls, **params)
 
 
 def set_random_seed(seed: Optional[int] = None) -> int:
