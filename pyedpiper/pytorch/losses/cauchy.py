@@ -1,5 +1,6 @@
 import torch
 from torch.nn.modules.loss import _Loss
+
 from .functional import cauchy_loss
 
 __all__ = ["CauchyLoss"]

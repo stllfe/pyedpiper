@@ -1,10 +1,10 @@
 # TODO: read arxiv papers related to each loss and finish up the docstrings accordingly
 
 import math
+from typing import Optional
+
 import torch
 import torch.functional as F
-
-from typing import Optional
 
 __all__ = ["focal_loss_with_logits", "cauchy_loss", "wing_loss", "label_smoothed_nll_loss"]
 

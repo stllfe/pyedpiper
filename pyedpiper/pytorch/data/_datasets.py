@@ -1,4 +1,3 @@
-import logging
 from abc import abstractmethod, ABCMeta
 from copy import deepcopy
 from os.path import basename
@@ -11,6 +10,8 @@ import pandas as pd
 from PIL import Image
 from albumentations import Compose
 from torch.utils.data import Dataset
+
+import logging
 
 log = logging.getLogger(__name__)
 

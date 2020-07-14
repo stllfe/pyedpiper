@@ -1,10 +1,9 @@
-import torch
+from typing import Optional
 
+import torch
 from pytorch_lightning.metrics.functional import stat_scores_multiple_classes, stat_scores
 from pytorch_lightning.metrics.functional.classification import get_num_classes
 from pytorch_lightning.metrics.functional.reduction import reduce
-from typing import Optional
-
 
 __all__ = ["balanced_accuracy", "sensitivity_specificity"]
 

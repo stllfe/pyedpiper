@@ -1,23 +1,23 @@
-import torch
-
-from pytorch_lightning.metrics import TensorMetric
 from typing import Optional, Any
 
-from .functional import balanced_accuracy
+import torch
+from pytorch_lightning.metrics import TensorMetric
+
+from .functional import sensitivity_specificity
 
 
-class BalancedAccuracy(TensorMetric):
+class Specificity(TensorMetric):
     """
-    Computes the accuracy classification score
+    Computes the Specificity, which is the proportion of actual negatives that are correctly identified as such.
+        It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
 
     Example:
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = BalancedAccuracy()
+        >>> metric = Specificity()
         >>> metric(pred, target)
-        tensor(0.7500)
-
+        tensor(0.7361)
     """
 
     def __init__(
@@ -36,11 +36,12 @@ class BalancedAccuracy(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
+            reduce_op: the operation to perform for DDP reduction
         """
-        super().__init__(name='balanced_accuracy',
+        super().__init__(name='specificity',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
+
         self.num_classes = num_classes
         self.reduction = reduction
 
@@ -50,10 +51,12 @@ class BalancedAccuracy(TensorMetric):
 
         Args:
             pred: predicted labels
-            target: ground truth labels
+            target: groundtruth labels
 
         Return:
-            A Tensor with the classification score.
+            _torch.Tensor: classification score
         """
-        return balanced_accuracy(pred=pred, target=target,
-                                 num_classes=self.num_classes, reduction=self.reduction)
+        return sensitivity_specificity(pred=pred,
+                                       target=target,
+                                       num_classes=self.num_classes,
+                                       reduction=self.reduction)[1]

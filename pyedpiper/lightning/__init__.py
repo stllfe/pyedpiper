@@ -1,6 +1,5 @@
-from . import metrics
 from . import callbacks
-
+from . import metrics
 from ._lightning import (
     concat_outputs,
     average_metrics,

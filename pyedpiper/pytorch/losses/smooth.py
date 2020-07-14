@@ -1,7 +1,7 @@
-import torch.nn.functional as F
-
-from torch import nn, Tensor
 from typing import Optional
+
+import torch.nn.functional as F
+from torch import nn, Tensor
 
 from .functional import label_smoothed_nll_loss
 

@@ -1,6 +1,8 @@
-import logging
-import tqdm
 import sys
+
+import tqdm
+
+import logging
 
 
 class TQDMHandler(logging.StreamHandler):

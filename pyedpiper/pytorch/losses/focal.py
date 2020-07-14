@@ -1,4 +1,5 @@
 from functools import partial
+
 from torch.nn.modules.loss import _Loss
 
 from .functional import focal_loss_with_logits
