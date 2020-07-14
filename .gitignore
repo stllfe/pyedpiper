@@ -1,4 +1,2 @@
 /.idea/
-/runs/
-/multiruns/
-/custom/
+/**/__pycache__/
