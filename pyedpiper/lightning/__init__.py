@@ -1,6 +1,6 @@
 from . import callbacks
 from . import metrics
-from ._lightning import (
+from .utils import (
     concat_outputs,
     average_metrics,
     map_outputs_to_label,

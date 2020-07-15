@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod, ABCMeta
 from copy import deepcopy
 from os.path import basename
@@ -10,8 +11,6 @@ import pandas as pd
 from PIL import Image
 from albumentations import Compose
 from torch.utils.data import Dataset
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -38,17 +37,17 @@ def file_loader(function: Callable) -> Callable:
 
 
 @file_loader
-def _numpy_loader(path):
+def numpy_loader(path):
     return np.load(str(path))
 
 
 @file_loader
-def _plt_loader(path):
+def plt_loader(path):
     return plt.imread(str(path))
 
 
 @file_loader
-def _pil_loader(path):
+def pil_loader(path):
     return Image.open(str(path))
 
 
@@ -64,7 +63,7 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
                  key: str = 'label',
                  index: str = 'image',
                  extension: str = 'png',
-                 loader: Callable = _plt_loader,
+                 loader: Callable = plt_loader,
                  transform: Compose = None,
                  extract_filename: Callable = None, ):
 
@@ -72,27 +71,25 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
 
         self.root = Path(root)
         self.labels = deepcopy(labels)
+        self.transform = transform
+        self.loader = loader
+        self.extension = extension[1:] if extension.startswith('.') else extension
+        self.index = index
+        self.key = key
 
         self._prepare_labels()
 
-        extension = extension[1:] if extension.startswith('.') else extension
-        self.files = list(self.root.glob(f'*.{extension}'))
+        self.files = list(self.root.glob(f'*.{self.extension}'))
 
         assert self.files, "Files with the specified extension can't be found!"
 
-        self._extract_filename = self._setup_filename_extractor(user_callback=extract_filename,
-                                                                extension=extension,
-                                                                index=index)
-
-        self._get_target = self._setup_target_getter(index=index, key=key)
+        self._extract_filename = self._setup_filename_extractor(user_callback=extract_filename)
+        self._get_target = self._setup_target_getter()
 
         self.targets = [self._get_target(self._extract_filename(file)) for file in self.files]
         self.samples = list(zip(self.files, self.targets))
 
-        self.transform = transform
-        self.loader = loader
-
-    def _setup_filename_extractor(self, user_callback, index, extension):
+    def _setup_filename_extractor(self, user_callback):
         class AmbiguousFileExtensionError(Exception):
             pass
 
@@ -110,8 +107,8 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
                     log.error(error)
                     raise AmbiguousFileExtensionError(error)
 
-            if self._with_extension(index):
-                return lambda filepath: _clean_path(filepath) + f'.{extension}'
+            if self._with_extension(self.index):
+                return lambda filepath: _clean_path(filepath) + f'.{self.extension}'
 
             return lambda filepath: _clean_path(filepath)
 
@@ -122,13 +119,13 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
 
     def _with_extension(self, index: str):
 
-        def _has_extension(name):
+        def _check(name):
             return len(Path(name).suffixes) > 0
 
         if isinstance(self.labels, pd.DataFrame):
-            flags = self.labels[index].apply(_has_extension)
+            flags = self.labels[index].apply(_check)
         elif isinstance(self.labels, dict):
-            flags = list(_has_extension(key) for key in self.labels.keys())
+            flags = list(_check(key) for key in self.labels.keys())
         else:
             return False
 
@@ -141,22 +138,22 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
         else:
             return all_with_extension
 
-    def _setup_target_getter(self, index, key):
+    def _setup_target_getter(self):
 
         if isinstance(self.labels, pd.DataFrame):
             # Try to setup indexing
             if isinstance(self.labels.index, pd.RangeIndex):
                 try:
-                    self.labels.set_index(index, inplace=True)
+                    self.labels.set_index(self.index, inplace=True)
                 except KeyError as e:
-                    raise ValueError(f"Labels DataFrame should contain '{index}' column. \n{e}")
+                    raise ValueError(f"Labels DataFrame should contain '{self.index}' column. \n{e}")
 
-            getter = lambda idx: self.labels.loc[idx][key]
+            getter = lambda idx: self.labels.loc[idx][self.key]
 
         elif isinstance(self.labels, dict):
             # Then it's a dict
-            if key:
-                getter = lambda idx: self.labels[idx][key]
+            if self.key:
+                getter = lambda idx: self.labels[idx][self.key]
             else:
                 getter = lambda idx: self.labels[idx]
 

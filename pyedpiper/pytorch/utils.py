@@ -1,8 +1,7 @@
+import logging
 from collections import OrderedDict
 
 from torch.nn import Module
-
-import logging
 
 log = logging.getLogger()
 

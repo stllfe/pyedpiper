@@ -17,11 +17,13 @@ class ObjectCaller:
     @classmethod
     def call_from_kwargs(cls, obj_type, *args, **kwargs, ):
         # Validate input object
-        if inspect.isclass(obj_type):
-            obj_type = obj_type.__init__
+        # if inspect.isclass(obj_type):
+        #     obj_type = obj_type.__init__
 
-        elif not inspect.isfunction(obj_type):
-            raise TypeError("Can call type or function objects only!")
+        # if not inspect.isfunction(obj_type) or inspect.isclass(obj_type):
+        #     raise TypeError("Can call type or function objects only!")
+
+        assert callable(obj_type), "Can call type or function objects only!"
 
         name = obj_type.__name__
         sign = inspect.signature(obj_type)
@@ -35,10 +37,10 @@ class ObjectCaller:
                 continue
 
             if _is_required(value):
-                required_parameters[name] = value
+                required_parameters[name] = None
                 continue
 
-            optional_parameters[name] = value
+            optional_parameters[name] = value.default
 
         # First try to map the args
         if args:

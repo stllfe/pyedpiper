@@ -2,10 +2,10 @@ import logging
 import os
 import random
 from typing import Any, Tuple, Optional, Iterable
+from typing import Mapping
 
 import numpy as np
 import torch
-from omegaconf import DictConfig, OmegaConf
 
 from ._core.module_loader import ModuleLoader
 from ._core.object_caller import ObjectCaller
@@ -13,12 +13,53 @@ from ._core.object_caller import ObjectCaller
 log = logging.getLogger(__name__)
 
 _TARGET_NAME = "target"
+_MODULE_NAME = "module"
 _PARAMS_NAME = "params"
 
 
-def resolve_target(target_config: DictConfig) -> type:
-    """
-    Get concrete class from config entry.
+def _merge(*dicts, dtype=dict):
+    """ Merge a collection of mappings"""
+
+    if len(dicts) == 1 and not isinstance(dicts[0], Mapping):
+        dicts = dicts[0]
+
+    rv = dtype()
+    for d in dicts:
+        rv.update(d)
+
+    return rv
+
+
+def _to_dict(c: Any):
+    # If provided object is omegaconf, try to resolve it
+    try:
+        import omegaconf
+        if isinstance(c, omegaconf.DictConfig):
+            return omegaconf.OmegaConf.to_container(c, resolve=True)
+    except ImportError:
+        pass
+
+    try:
+        if isinstance(c, dict):
+            return c
+
+        elif isinstance(c, Mapping):
+            return dict(c)
+
+        else:
+            TypeError("provided object should be mapping.")
+
+    except Exception as e:
+        log.error(f"Can't convert the object into dict! \n{e}")
+
+
+def _get_params(node: Mapping):
+    return node.get(_PARAMS_NAME, {}) or {}
+
+
+def _resolve_target(target_config: Mapping) -> type:
+    """Get concrete class from config entry.
+
     :param target_config: config entry with 'class', 'params' and (optionally) 'module' specified
     :return: `type` object of corresponding class
     """
@@ -32,44 +73,80 @@ def resolve_target(target_config: DictConfig) -> type:
     try:
         return getattr(source, cls)
     except AttributeError as e:
-        error = "{} '{}' not in module '{}'".format(_TARGET_NAME.title(), cls, target_config.module)
+        error = "{} '{}' not in module '{}'".format(_TARGET_NAME.title(), cls, target_config[_MODULE_NAME])
         log.error(error)
         raise e
 
 
-def _resolve_target_module(class_config: DictConfig) -> Tuple[Any, Any]:
+def _resolve_target_module(class_config: Mapping) -> Tuple[Any, Any]:
     # Assuming that module and class are written in dot notation
-    if 'module' not in class_config or class_config.module is None:
+    if 'module' not in class_config or class_config[_MODULE_NAME] is None:
         module, _, cls = class_config[_TARGET_NAME].rpartition('.')
     else:
-        module = class_config.module
+        module = class_config[_MODULE_NAME]
         cls = class_config[_TARGET_NAME]
     source = ModuleLoader.load_module(module)
     return cls, source
 
 
-def instantiate(target_config: DictConfig, **kwargs) -> Any:
-    """Same as `call()`"""
-    return call(target_config, **kwargs)
+def instantiate(target_config: Mapping, **kwargs) -> Any:
+    """Same as `call()`, but allows recursive object instantiation."""
+
+    import inspect
+
+    def buildable(o: Any):
+        if isinstance(o, Mapping):
+            try:
+                return _resolve_target(o)
+            except ValueError:
+                return None
+
+    # Convert to dict if needed
+    target_config = _to_dict(target_config)
+
+    # Make sure we can resolve the root first
+    _resolve_target(target_config)
+
+    def postorder_from(node: Mapping):
+        obj = buildable(node)
+
+        if obj:
+            result = dict()
+            params = _get_params(node)
+            for param, value in params.items():
+                result[param] = postorder_from(value)
+
+            if inspect.isfunction(obj):
+                return obj
+
+            result = _merge(node, result)
+            return call(result)
+
+        return node
+
+    if kwargs:
+        target_config = _merge(target_config, kwargs)
+
+    return postorder_from(target_config)
 
 
-def call(target_config: DictConfig, **kwargs) -> Any:
+def call(target_config: Mapping, **kwargs) -> Any:
     """Resolve the module and call the object with 'params' config keys."""
     assert target_config is not None, "Input config is `None`"
 
-    cls = resolve_target(target_config)
-    params = target_config.params if _PARAMS_NAME in target_config else OmegaConf.create()
+    # Convert to dict if needed
+    target_config = _to_dict(target_config)
+
+    cls = _resolve_target(target_config)
 
     # If params are None, make an empty dict as well
-    params = params or OmegaConf.create()
+    params = _get_params(target_config)
 
-    assert isinstance(params, DictConfig), (
+    assert isinstance(params, Mapping), (
         "Input config params are expected to be a mapping, "
         "found {}".format(type(params)))
 
-    params = OmegaConf.to_container(params, resolve=True)
-    params.update(kwargs)
-
+    params = _merge(params, kwargs)
     return ObjectCaller.call_from_kwargs(cls, **params)
 
 

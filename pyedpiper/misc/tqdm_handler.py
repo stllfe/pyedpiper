@@ -1,12 +1,11 @@
+import logging
 import sys
 
 import tqdm
 
-import logging
-
 
 class TQDMHandler(logging.StreamHandler):
-    """Handler for _logging module that logs without interfering any progress bars.
+    """Handler for logging module that logs without interfering any progress bars.
 
     Utilizes `tqdm.write()` + sys.stdout combo for that.
     """
