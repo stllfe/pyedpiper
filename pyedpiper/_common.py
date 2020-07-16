@@ -101,12 +101,6 @@ def instantiate(target_config: Mapping, **kwargs) -> Any:
             except ValueError:
                 return None
 
-    # Convert to dict if needed
-    target_config = _to_dict(target_config)
-
-    # Make sure we can resolve the root first
-    _resolve_target(target_config)
-
     def postorder_from(node: Mapping):
         obj = buildable(node)
 
@@ -125,8 +119,18 @@ def instantiate(target_config: Mapping, **kwargs) -> Any:
 
         return node
 
+    # Convert to dict if needed
+    target_config = _to_dict(target_config)
+
+    # Make sure we can resolve the root first
+    _resolve_target(target_config)
+
+    # If params are None, set an empty dict as well
+    target_config[_PARAMS_KEY] = _get_params(target_config)
+
     if kwargs:
-        target_config = _merge(target_config, kwargs)
+        # Inject kwargs into params
+        target_config[_PARAMS_KEY].update(kwargs)
 
     return postorder_from(target_config)
 
