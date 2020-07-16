@@ -80,7 +80,7 @@ def _resolve_target(target_config: Mapping) -> type:
 
 def _resolve_target_module(class_config: Mapping) -> Tuple[Any, Any]:
     # Assuming that module and class are written in dot notation
-    if 'module' not in class_config or class_config[_MODULE_KEY] is None:
+    if _MODULE_KEY not in class_config or class_config[_MODULE_KEY] is None:
         module, _, cls = class_config[_TARGET_KEY].rpartition('.')
     else:
         module = class_config[_MODULE_KEY]

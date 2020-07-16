@@ -1,13 +1,18 @@
 import logging
 import os
-
-from pathlib import Path
 from importlib import import_module
 from importlib.util import (
     module_from_spec,
     spec_from_file_location,
 )
+from pathlib import Path
 
+try:
+    import hydra
+
+    _HAS_HYDRA = True
+except ImportError:
+    _HAS_HYDRA = False
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +44,7 @@ class ModuleLoader:
                 location=module_path
             )
             module = module_from_spec(spec)
-            spec._loader.exec_module(module)
+            spec.loader.exec_module(module)
             return module
         except Exception as e:
             error = "Can't load local module `{}`. \n{}".format(module_path, str(e))
@@ -102,14 +107,17 @@ def _resolve_local_module(module_path):
 
 
 def _get_project_root() -> Path:
-    from hydra.utils import get_original_cwd
     # Check whether hydra runtime is running
     # since it changes current working path
-    try:
-        hydra_runtime_cwd = get_original_cwd()
-    except AttributeError:
-        return Path(os.getcwd())
-    return Path(hydra_runtime_cwd)
+    if _HAS_HYDRA:
+        from hydra.utils import get_original_cwd
+        try:
+            hydra_runtime_cwd = get_original_cwd()
+            return Path(hydra_runtime_cwd)
+        except AttributeError:
+            pass
+
+    return Path(os.getcwd())
 
 
 def _get_absolute_path(path: str) -> Path:
