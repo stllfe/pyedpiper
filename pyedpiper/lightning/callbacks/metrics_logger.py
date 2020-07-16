@@ -12,8 +12,7 @@ class MetricsLogger(Callback):
                  outputs_key: str,
                  targets_key: str,
                  prefix: Optional[str] = None,
-                 per_batch: bool = False,
-                 allow_nokey=False,):
+                 per_batch: bool = False):
 
         super(MetricsLogger, self).__init__()
         self.metrics = metrics
@@ -23,11 +22,9 @@ class MetricsLogger(Callback):
 
         self.per_batch = per_batch
         self.epoch_last_check = None
-        self.prefix = prefix or ""
-        self.allow_nokey = allow_nokey
 
         # Initialize for storing values
-        self.names = list(f"{prefix}/{metric.name}".strip("/") for metric in metrics)
+        self.names = list(f"{str(prefix) + '/' if prefix else ''}{metric.name}" for metric in metrics)
         self.values = dict.fromkeys(self.names, 0.)
 
     def on_train_start(self, trainer, pl_module):
