@@ -97,16 +97,17 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
             return user_callback
 
         if user_callback is None:
-            # Validate that files in the directory have only one extension
-            for path in self.files:
-
-                if len(path.suffixes) > 1:
-                    error = ("Files have more than one extension suffix. "
-                             "Please provide your own `extract_filename` function.")
-                    log.error(error)
-                    raise AmbiguousFileExtensionError(error)
 
             if self._with_extension(self.index):
+                # Validate that files in the directory have only one extension
+                for path in self.files:
+
+                    if len(path.suffixes) > 1:
+                        error = ("Files have more than one extension suffix. "
+                                 "Please provide your own `extract_filename` function.")
+                        log.error(error)
+                        raise AmbiguousFileExtensionError(error)
+
                 return lambda filepath: _clean_path(filepath) + f'.{self.extension}'
 
             return lambda filepath: _clean_path(filepath)
