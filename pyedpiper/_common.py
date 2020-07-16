@@ -2,24 +2,23 @@ import logging
 import os
 import random
 from typing import Any, Tuple, Optional, Iterable
+from typing import Mapping
 
 import numpy as np
 import torch
-
-from typing import Mapping
 
 from ._core.module_loader import ModuleLoader
 from ._core.object_caller import ObjectCaller
 
 log = logging.getLogger(__name__)
 
-_TARGET_NAME = "target"
-_MODULE_NAME = "module"
-_PARAMS_NAME = "params"
+_TARGET_KEY = "target"
+_MODULE_KEY = "module"
+_PARAMS_KEY = "params"
 
 
 def _merge(*dicts, dtype=dict):
-    """ Merge a collection of mappings"""
+    """Merge a collection of mappings."""
 
     if len(dicts) == 1 and not isinstance(dicts[0], Mapping):
         dicts = dicts[0]
@@ -48,14 +47,14 @@ def _to_dict(c: Any):
             return dict(c)
 
         else:
-            TypeError("provided object should be mapping.")
+            TypeError("provided object should be a mapping.")
 
     except Exception as e:
-        log.error(f"Can't convert the object into dict! \n{e}")
+        log.error(f"Can't convert to dict! \n{e}")
 
 
 def _get_params(node: Mapping):
-    return node.get(_PARAMS_NAME, {}) or {}
+    return node.get(_PARAMS_KEY, {}) or {}
 
 
 def _resolve_target(target_config: Mapping) -> type:
@@ -64,8 +63,8 @@ def _resolve_target(target_config: Mapping) -> type:
     :param target_config: config entry with 'class', 'params' and (optionally) 'module' specified
     :return: `type` object of corresponding class
     """
-    if _TARGET_NAME not in target_config or target_config[_TARGET_NAME] is None:
-        error = f"No {_TARGET_NAME} property was provided in config."
+    if _TARGET_KEY not in target_config or target_config[_TARGET_KEY] is None:
+        error = f"No {_TARGET_KEY} property found in config."
         log.error(error)
         raise ValueError(error)
 
@@ -74,18 +73,18 @@ def _resolve_target(target_config: Mapping) -> type:
     try:
         return getattr(source, cls)
     except AttributeError as e:
-        error = "{} '{}' not in module '{}'".format(_TARGET_NAME.title(), cls, target_config[_MODULE_NAME])
+        error = "{} '{}' not in module '{}'".format(_TARGET_KEY.title(), cls, target_config[_MODULE_KEY])
         log.error(error)
         raise e
 
 
 def _resolve_target_module(class_config: Mapping) -> Tuple[Any, Any]:
     # Assuming that module and class are written in dot notation
-    if 'module' not in class_config or class_config[_MODULE_NAME] is None:
-        module, _, cls = class_config[_TARGET_NAME].rpartition('.')
+    if 'module' not in class_config or class_config[_MODULE_KEY] is None:
+        module, _, cls = class_config[_TARGET_KEY].rpartition('.')
     else:
-        module = class_config[_MODULE_NAME]
-        cls = class_config[_TARGET_NAME]
+        module = class_config[_MODULE_KEY]
+        cls = class_config[_TARGET_KEY]
     source = ModuleLoader.load_module(module)
     return cls, source
 
@@ -117,11 +116,12 @@ def instantiate(target_config: Mapping, **kwargs) -> Any:
             for param, value in params.items():
                 result[param] = postorder_from(value)
 
+            # If there is a method or a function provided as parameter
             if inspect.isfunction(obj):
                 return obj
 
             result = _merge(node, result)
-            return call(result)
+            return ObjectCaller.call_from_kwargs(obj, **result)
 
         return node
 

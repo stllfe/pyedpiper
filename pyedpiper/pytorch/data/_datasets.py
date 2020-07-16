@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod, ABCMeta
 from copy import deepcopy
 from os.path import basename
@@ -11,14 +12,12 @@ from PIL import Image
 from albumentations import Compose
 from torch.utils.data import Dataset
 
-import logging
-
 log = logging.getLogger(__name__)
 
 
 def file_loader(function: Callable) -> Callable:
-    """
-    Decorator function to add `try` block and logging for loaders.
+    """Decorator function to add `try` block and logging for loaders.
+
     :return: wrapped function
     """
     from functools import wraps
@@ -100,9 +99,8 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
         if user_callback is None:
             # Validate that files in the directory have only one extension
             for path in self.files:
-                path = Path(path)
 
-                if len(path.suffixes) > 2:
+                if len(path.suffixes) > 1:
                     error = ("Files have more than one extension suffix. "
                              "Please provide your own `extract_filename` function.")
                     log.error(error)
