@@ -15,25 +15,34 @@ def _is_required(param):
 class ObjectCaller:
 
     @classmethod
-    def call_from_kwargs(cls, obj_type, *args, **kwargs, ):
-        # Validate input object
-        # if inspect.isclass(obj_type):
-        #     obj_type = obj_type.__init__
-
-        # if not inspect.isfunction(obj_type) or inspect.isclass(obj_type):
-        #     raise TypeError("Can call type or function objects only!")
+    def call_from_kwargs(cls, obj_type, *args, **kwargs):
+        """Tries to make an object call intelligently,
+           i. e. remove unnecessary arguments or notify in case some missing."""
 
         assert callable(obj_type), "Can call type or function objects only!"
 
         name = obj_type.__name__
-        sign = inspect.signature(obj_type)
+
+        try:
+            sign = inspect.signature(obj_type)
+        except ValueError:
+            # Some objects may raise ValueError at this point
+            # meaning, that we can't get access to their signature for some reason.
+            # In such cases just fallback to a lazy call:
+            return obj_type(*args, **kwargs)
+
+        ignored = list(_IGNORED_PARAMETERS)
+
+        # For functions we expect any arguments
+        if inspect.isfunction(obj_type) and not inspect.ismethod(obj_type):
+            ignored.remove('self')
 
         required_parameters = OrderedDict()
         optional_parameters = OrderedDict()
 
         # Collect all the necessary params
         for name, value in sign.parameters.items():
-            if name in _IGNORED_PARAMETERS:
+            if name in ignored:
                 continue
 
             if _is_required(value):
