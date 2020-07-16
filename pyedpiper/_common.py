@@ -135,7 +135,7 @@ def instantiate(target_config: Mapping, **kwargs) -> Any:
     return postorder_from(target_config)
 
 
-def call(target_config: Mapping, **kwargs) -> Any:
+def call(target_config: Mapping, *args, **kwargs) -> Any:
     """Resolve the module and call the object with 'params' config keys."""
     assert target_config is not None, "Input config is `None`"
 
@@ -152,7 +152,7 @@ def call(target_config: Mapping, **kwargs) -> Any:
         "found {}".format(type(params)))
 
     params = _merge(params, kwargs)
-    return ObjectCaller.call_from_kwargs(cls, **params)
+    return ObjectCaller.call_from_kwargs(cls, *args, **params)
 
 
 def set_random_seed(seed: Optional[int] = None) -> int:
