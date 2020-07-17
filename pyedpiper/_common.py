@@ -2,8 +2,7 @@ import logging
 import os
 import random
 from numbers import Number
-from typing import Any, Tuple, Optional
-from typing import Mapping, Iterable, Sequence
+from typing import Any, Tuple, Iterable, List, Optional, Mapping
 
 import numpy as np
 import torch
@@ -203,10 +202,10 @@ def as_numpy(obj) -> np.ndarray:
     if isinstance(obj, np.ndarray):
         return obj
 
-    error = (f"Can't convert object of type "
-             f"`{type(obj)}` into `np.ndarray`")
-    log.error(error)
-    raise TypeError(error)
+    log.error(f"Can't convert object of type "
+              f"`{type(obj)}` into `np.ndarray`")
+
+    raise TypeError()
 
 
 def as_tensor(obj, dtype=None) -> torch.Tensor:
@@ -215,21 +214,28 @@ def as_tensor(obj, dtype=None) -> torch.Tensor:
 
     if isinstance(obj, np.ndarray):
         obj = torch.from_numpy(obj)
-        if dtype is not None:
-            obj = obj.type(dtype)
-        return obj
+        return obj.to(dtype)
 
     if isinstance(obj, torch.Tensor):
-        if dtype is not None:
-            obj = obj.type(dtype)
-        return obj
+        return obj.to(dtype)
 
-    if isinstance(obj, (Iterable, Sequence)):
-        return torch.as_tensor(data=obj, dtype=dtype)
+    if isinstance(obj, (List, Tuple)):
+        def are_all(t: type):
+            return all(map(lambda el: isinstance(el, t), obj))
 
-    else:
-        error = (f"Can't convert object of type "
-                 f"`{type(obj)}` into `torch.Tensor`: {e}")
+        # Check whether it's a sequence of tensors, or arrays
+        if are_all(torch.Tensor):
+            return torch.cat(obj).to(dtype)
 
-        log.error(error)
-        raise TypeError(error)
+        if are_all(np.ndarray):
+            obj = np.array(obj)
+            obj = torch.from_numpy(obj)
+            return obj.to(dtype)
+
+        # As a last resort, try to convert elements one by one
+        return torch.cat([as_tensor(it, dtype=dtype) for it in obj]).to(dtype)
+
+    log.error(f"Can't convert object of type "
+              f"`{type(obj)}` into `torch.Tensor`!")
+
+    raise TypeError()
