@@ -18,6 +18,11 @@ def reduce(tensor: torch.Tensor, reduction: str) -> torch.Tensor:
     """
 
     if reduction == 'mean':
+
+        # Tensors of type `torch.long` can't be averaged.
+        if tensor.dtype is torch.long:
+            tensor = tensor.float()
+
         return torch.mean(tensor)
 
     if reduction == 'none':
