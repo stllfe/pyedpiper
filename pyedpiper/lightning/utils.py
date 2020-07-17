@@ -1,132 +1,157 @@
+from typing import Optional, Sequence
+
 import torch
 
 
-def concat_outputs(outputs: list, prefix="") -> dict:
+def reduce(tensor: torch.Tensor, reduction: str) -> torch.Tensor:
+    """Reduces a given tensor by a given reduction method.
+
+    Args:
+        tensor: The tensor to be reduced.
+        reduction: A string specifying the reduction method ('mean', 'none', 'sum').
+
+    Returns:
+        Reduced Tensor
+
+    Raises:
+        ValueError if an invalid reduction parameter was given.
     """
 
-    :param outputs: list of outputs from series of PyTorch Lightning steps.
-                    You get it as an argument for '...__epoch_end()' methods
-    :param prefix: prefix to add for every key in averaged dictionary. default - empty string
-    :return: dict with every tensor value concatenated across all outputs
+    if reduction == 'mean':
+        return torch.mean(tensor)
+
+    if reduction == 'none':
+        return tensor
+
+    if reduction == 'sum':
+        return torch.sum(tensor)
+
+    raise ValueError('Reduction parameter unknown.')
+
+
+def merge_outputs(outputs: list, prefix: str = None) -> dict:
+    """Merges outputs from different steps into one dict.
+
+    Args:
+        outputs: A list of outputs from the series of PyTorch Lightning steps.
+        prefix: A prefix string to add for every key in the output dictionary.
     """
 
-    def _recursive_concat(outputs):
+    def recursive_concat(outputs_):
         concat = dict()
-        if not outputs:
+        if not outputs_:
             return concat
 
-        if len(outputs) == 1:
-            return outputs[0]
+        if len(outputs_) == 1:
+            return outputs_[0]
 
         # We need only one pass since every dict in list contains the same metrics, hence use only the first item
-        output = outputs[0]
+        output = outputs_[0]
         for key, value in output.items():
             if isinstance(value, torch.Tensor):
                 # todo: calculate output shape explicitly
-                stacked = torch.stack([output[key] for output in outputs])
+                stacked = torch.stack([output[key] for output in outputs_])
                 flatten = stacked.flatten(end_dim=-2) if stacked.ndim > 2 else stacked.flatten()
-                new_key = (prefix + '_' + key).strip('_')
+                new_key = (prefix + '_' if prefix else '' + key).strip('_')
                 concat[new_key] = flatten
                 continue
             elif isinstance(value, dict):
-                new_dict = _recursive_concat([output[key] for output in outputs])
+                new_dict = recursive_concat([output[key] for output in outputs_])
                 concat[key] = new_dict
                 continue
             else:
-                # log.warning('Non-typical value detected in outputs. Are you sure you use this function correctly?')
                 concat[key] = value
         return concat
 
-    return _recursive_concat(outputs)
+    return recursive_concat(outputs)
 
 
-def average_metrics(outputs: list, prefix="") -> dict:
-    """
-    Averages all the outputs, adds 'avg' prefix and inserts
-    :param outputs: list of outputs from series of PyTorch Lightning steps.
-                    You get it as an argument for '__epoch_end' methods
-    :param prefix: prefix to add for every key in averaged dictionary. default - empty string
-    :return: dict with every tensor value averaged across all outputs
-    """
-    # todo: simplify it to `concat_metrics` -> mean
-    def _recursive_average(outputs):
-        averages = dict()
-        if not outputs:
-            return averages
+def reduce_outputs(outputs: list, reduction: str = 'mean', prefix: str = None) -> dict:
+    """Reduces outputs from series of steps and returns dictionary.
 
-        # We need only one pass since every dict in list contains the same metrics, hence use only the first item
-        output = outputs[0]
-        for key, value in output.items():
-            if isinstance(value, torch.Tensor):
-                average = torch.stack([output[key] for output in outputs]).mean()
-                new_key = (prefix + '_' + key).strip('_')
-                averages[new_key] = average
-                continue
-            elif isinstance(value, dict):
-                new_dict = _recursive_average([output[key] for output in outputs])
-                averages[key] = new_dict
-                continue
-            else:
-                # log.warning('Non-typical value detected in outputs. Are you sure you use this function correctly?')
-                averages[key] = value
-        return averages
-
-    return _recursive_average(outputs)
-
-
-def map_outputs_to_label(output: dict, old_label, new_label) -> dict:
-    """
-    Shorthand to swap outputs labels to a different one. For example swap 'val' metrics prefix to 'test' or vice versa.
-    :param output: dict with outputs from PyTorch Lightning step such as 'val_step' or 'test_step'
-    :param old_label: str
-    :param new_label: str
-    :return:
+    Args:
+        outputs: A list of outputs from the series of PyTorch Lightning steps.
+        prefix: A prefix string to add for every key in the output dictionary.
+        reduction: A string specifying the reduction method ('mean', 'none', 'sum').
+                   If 'none' this function is the same as ``merge_outputs``.
     """
 
-    def _recursive_map(output):
+    merged = merge_outputs(outputs=outputs, prefix=prefix)
+    reduced = {key: reduce(value, reduction) if isinstance(value, torch.Tensor) else value
+               for key, value in merged.items()}
+    return reduced
+
+
+def change_prefix(output: dict, old: str, new: str) -> dict:
+    """Shorthand to swap outputs key prefix. 
+    
+    For example, swap 'val' metrics prefix to 'test' or vice versa for every dict entry.
+    
+    Args:
+        output:  An output dictionary from PyTorch Lightning step.
+        old: An old prefix string.
+        new: A new prefix string.
+    """
+
+    def recursive_map(output_):
         new_outputs = dict()
-        for key, value in output.items():
+        for key, value in output_.items():
             new_key = key
             if isinstance(value, dict):
-                value = _recursive_map(value)
+                value = recursive_map(value)
             elif isinstance(value, torch.Tensor):
-                new_key = key.replace(old_label, new_label)
+                new_key = key.replace(old, new)
             new_outputs[new_key] = value
         return new_outputs
 
-    return _recursive_map(output)
+    return recursive_map(output)
 
 
-def extract_unique_metrics(results: dict) -> dict:
+def extract_unique_metrics(output: dict) -> dict:
+    """Extracts all metrics from dict or nested dicts recursively.
+
+    According to PyTorch Lightning API output metrics are of type ``torch.Tensors``.
+
+    Args:
+        output:  An output dictionary from PyTorch Lightning step.
+
+    Returns:
+        Flat dict with all the metrics found.
     """
-    Extract all metrics from dict or nested dicts recursively.
-    According to PyTorch Lightning API output metrics are of type '_torch.Tensors'.
-    :param results: dict from any step output
-    :return: flat dict with all the metrics found
-    """
 
-    def _extract_recursive(results):
+    def extract_recursive(results):
         metrics = dict()
         for key, value in results.items():
             if isinstance(value, torch.Tensor):
                 metrics[key] = value
             elif isinstance(value, dict):
-                metrics.update(_extract_recursive(value))
+                metrics.update(extract_recursive(value))
         return metrics
 
-    return _extract_recursive(results)
+    return extract_recursive(output)
 
 
-def average_and_log_metrics(outputs: list, prefix=""):
+def reduce_and_log(outputs: list, reduction: str = 'mean', keys: Optional[Sequence[str]] = None, prefix: str = None):
+    """Reduces all the outputs, adds prefix if provided and inserts new key 'log' for logger to capture the output.
+
+    Args:
+        outputs: A list of outputs from series of PyTorch Lightning steps.
+        prefix: A string prefix to add for every key in averaged dictionary.
+        reduction: A string specifying the reduction method ('mean', 'sum').
+        keys: Optional; If no provided, adds all the keys found for logging.
     """
-    Shorthand for '$step_epoch_end' type of steps according to PyTorch Lightning API.
-    It averages all the outputs, adds prefix if provided and inserts new key 'log' for logger to capture the output.
-    :param outputs: outputs from series of PyTorch Lightning steps such as 'validation_epoch_end' inputs or 'test_epoch_end'
-    :param prefix: prefix to add for every key in averaged dictionary. default - empty string
-    :return: new dict as specified in description
-    """
-    # todo: add a log filter, to choose specific keys for _logging
 
-    results = average_metrics(outputs, prefix)
-    results.update({'log': extract_unique_metrics(results)})
-    return results
+    if reduction == 'none':
+        from pytorch_lightning.utilities import rank_zero_warn
+        reduction = 'mean'
+        rank_zero_warn("Reduction can't be 'none', since you want be able to log a sequence. "
+                       "Using 'mean' instead. If it was intentional, consider using ``merge_outputs``.")
+
+    reduced = reduce_outputs(outputs=outputs, reduction=reduction, prefix=prefix)
+    metrics = extract_unique_metrics(reduced)
+
+    keys = keys or metrics.keys()
+    logs = {key: metrics[key] for key in keys}
+
+    reduced.update({'log': logs})
+    return reduced
