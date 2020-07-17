@@ -1,8 +1,9 @@
 import logging
 import os
 import random
-from typing import Any, Tuple, Optional, Iterable
-from typing import Mapping
+from numbers import Number
+from typing import Any, Tuple, Optional
+from typing import Mapping, Iterable, Sequence
 
 import numpy as np
 import torch
@@ -209,10 +210,8 @@ def as_numpy(obj) -> np.ndarray:
 
 
 def as_tensor(obj, dtype=None) -> torch.Tensor:
-    if isinstance(obj, torch.Tensor):
-        if dtype is not None:
-            obj = obj.type(dtype)
-        return obj
+    if isinstance(obj, Number):
+        return torch.tensor([obj], dtype=dtype)
 
     if isinstance(obj, np.ndarray):
         obj = torch.from_numpy(obj)
@@ -220,16 +219,15 @@ def as_tensor(obj, dtype=None) -> torch.Tensor:
             obj = obj.type(dtype)
         return obj
 
-    if isinstance(obj, (list, tuple)):
-        obj = np.ndarray(obj)
-        obj = torch.from_numpy(obj)
+    if isinstance(obj, torch.Tensor):
         if dtype is not None:
             obj = obj.type(dtype)
         return obj
 
-    try:
+    if isinstance(obj, (Iterable, Sequence)):
         return torch.as_tensor(data=obj, dtype=dtype)
-    except Exception as e:
+
+    else:
         error = (f"Can't convert object of type "
                  f"`{type(obj)}` into `torch.Tensor`: {e}")
 
