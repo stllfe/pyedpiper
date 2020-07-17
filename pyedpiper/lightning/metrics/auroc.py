@@ -1,66 +1,62 @@
-from typing import Optional, Any
+from typing import Optional, Any, Sequence
 
-import numpy as np
 import torch
-from pytorch_lightning.metrics import SklearnMetric
+from pytorch_lightning.metrics import TensorMetric
+from pytorch_lightning.metrics.classification import auroc
 
 
-class AUROC(SklearnMetric):
+class AUROC(TensorMetric):
     """
-    Compute Area Under the Curve (AUC) from prediction scores
+    Computes the area under curve (AUC) of the receiver operator characteristic (ROC)
 
-    Note:
-        this implementation is restricted to the binary classification task
-        or multilabel classification task in label indicator format.
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = AUROC()
+        >>> metric(pred, target)
+        tensor(0.3333)
 
     """
 
     def __init__(
             self,
-            average: Optional[str] = 'macro',
-            multi_class: Optional[str] = None,
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            pos_index: int = 1,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
     ):
         """
         Args:
-            average: If None, the scores for each class are returned. Otherwise, this determines the type of
-                averaging performed on the data:
-
-                * If 'micro': Calculate metrics globally by considering each element of the label indicator
-                  matrix as a label.
-                * If 'macro': Calculate metrics for each label, and find their unweighted mean.
-                  This does not take label imbalance into account.
-                * If 'weighted': Calculate metrics for each label, and find their average, weighted by
-                  support (the number of true instances for each label).
-                * If 'samples': Calculate metrics for each instance, and find their average.
-
-            reduce_group: the process group for DDP reduces (only needed for DDP training).
-                Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
+            pos_index: positive label index to use in case of multiple dimensions
+            reduce_group: the process group to reduce metric results from DDP
+            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__('roc_auc_score',
+        super().__init__(name='auroc',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         average=average,
-                         multi_class=multi_class)
+                         reduce_op=reduce_op)
+
+        self.pos_index = pos_index
 
     def forward(
             self,
-            y_score: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
-    ) -> float:
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_weight: Optional[Sequence] = None
+    ) -> torch.Tensor:
         """
+        Actual metric computation
+
         Args:
-            y_score: Target scores, can either be probability estimates of the positive class,
-                confidence values, or binary decisions.
-            y_true: True binary labels in binary label indicators.
-            sample_weight: Sample weights.
+            pred: predicted labels
+            target: groundtruth labels
+            sample_weight: the weights per sample
 
         Return:
-            Area Under Receiver Operating Characteristic Curve
+            torch.Tensor: classification score
         """
-        return super().forward(y_score=y_score, y_true=y_true,
-                               sample_weight=sample_weight)
+
+        if pred.ndim > 1:
+            pred = pred[:, self.pos_index]
+
+        return auroc(pred=pred, target=target,
+                     sample_weight=sample_weight)
