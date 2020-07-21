@@ -2,20 +2,21 @@ from typing import Optional, Any, Sequence
 
 import torch
 from pytorch_lightning.metrics import TensorMetric
-from pytorch_lightning.metrics.classification import auroc
+
+from .functional import auroc_binary
 
 
-class AUROC(TensorMetric):
+class AUROCBinary(TensorMetric):
     """
-    Computes the area under curve (AUC) of the receiver operator characteristic (ROC)
+    Computes the area under curve (AUC) of the receiver operator characteristic (ROC).
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = AUROC()
+        >>> pred = torch.Tensor([[0.6, 0.4], [0.5, 0.5], [0.4, 0.6], [0.3, 0.7]])
+        >>> target = torch.tensor([0, 1, 0, 1])
+        >>> metric = AUROCBinary()
         >>> metric(pred, target)
-        tensor(0.3333)
+        tensor(0.7500)
 
     """
 
@@ -55,8 +56,7 @@ class AUROC(TensorMetric):
             torch.Tensor: classification score
         """
 
-        if pred.ndim > 1:
-            pred = pred[:, self.pos_index]
-
-        return auroc(pred=pred, target=target,
-                     sample_weight=sample_weight)
+        return auroc_binary(pred=pred,
+                            target=target,
+                            pos_index=self.pos_index,
+                            sample_weight=sample_weight)

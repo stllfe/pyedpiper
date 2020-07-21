@@ -142,7 +142,7 @@ def reduce_and_log(outputs: list, reduction: str = 'mean', keys: Optional[Sequen
     Args:
         outputs: A list of outputs from series of PyTorch Lightning steps.
         prefix: A string prefix to add for every key in averaged dictionary.
-        reduction: A string specifying the reduction method ('mean', 'sum').
+        reduction: A string specifying the reduction method ('mean', 'sum') (default='mean').
         keys: Optional; If no provided, adds all the keys found for logging.
     """
 
@@ -150,7 +150,8 @@ def reduce_and_log(outputs: list, reduction: str = 'mean', keys: Optional[Sequen
         from pytorch_lightning.utilities import rank_zero_warn
         reduction = 'mean'
         rank_zero_warn("Reduction can't be 'none', since you want be able to log a sequence. "
-                       "Using 'mean' instead. If it was intentional, consider using ``merge_outputs``.")
+                       "If it was intentional, consider using ``merge_outputs``."
+                       "Using 'mean' instead.")
 
     reduced = reduce_outputs(outputs=outputs, reduction=reduction, prefix=prefix)
     metrics = extract_unique_metrics(reduced)

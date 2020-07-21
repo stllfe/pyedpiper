@@ -1,11 +1,12 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 import torch
+from pytorch_lightning.metrics.classification import auroc as pl_auroc
 from pytorch_lightning.metrics.functional import stat_scores_multiple_classes, stat_scores
 from pytorch_lightning.metrics.functional.classification import get_num_classes
 from pytorch_lightning.metrics.functional.reduction import reduce
 
-__all__ = ["balanced_accuracy", "sensitivity_specificity"]
+__all__ = ["balanced_accuracy", "sensitivity_specificity", "auroc_binary"]
 
 
 def sensitivity_specificity(pred: torch.Tensor,
@@ -41,10 +42,21 @@ def balanced_accuracy(pred: torch.Tensor,
                       target: torch.Tensor,
                       num_classes: Optional[int] = None,
                       reduction: str = 'elementwise_mean'):
-
     sens_spec = sensitivity_specificity(pred=pred,
                                         target=target,
                                         num_classes=num_classes,
                                         reduction=reduction)
 
     return torch.as_tensor(sens_spec).mean()
+
+
+def auroc_binary(pred: torch.Tensor,
+                 target: torch.Tensor,
+                 sample_weight: Optional[Sequence] = None,
+                 pos_index: int = 1,
+                 ) -> torch.Tensor:
+    if pred.ndim > 1:
+        pred = pred[:, pos_index]
+
+    return pl_auroc(pred=pred, target=target,
+                    sample_weight=sample_weight)
