@@ -34,12 +34,13 @@ def reduce(tensor: torch.Tensor, reduction: str) -> torch.Tensor:
     raise ValueError('Reduction parameter unknown.')
 
 
-def merge_outputs(outputs: list, prefix: str = None) -> dict:
+def merge_outputs(outputs: list, multi_dim: int = 0, prefix: str = None) -> dict:
     """Merges outputs from different steps into one dict.
 
     Args:
         outputs: A list of outputs from the series of PyTorch Lightning steps.
         prefix: A prefix string to add for every key in the output dictionary.
+        multi_dim: The dimension to use for concatenation if there is more than one (default=0).
     """
 
     def recursive_concat(outputs_):
@@ -54,11 +55,10 @@ def merge_outputs(outputs: list, prefix: str = None) -> dict:
         output = outputs_[0]
         for key, value in output.items():
             if isinstance(value, torch.Tensor):
-                # todo: calculate output shape explicitly
-                stacked = torch.stack([output[key] for output in outputs_])
-                flatten = stacked.flatten(end_dim=-2) if stacked.ndim > 2 else stacked.flatten()
+                dim = multi_dim if value.ndim > 1 else None
+                concatenated = torch.cat([output[key] for output in outputs_], dim=dim)
                 new_key = (prefix + '_' if prefix else '' + key).strip('_')
-                concat[new_key] = flatten
+                concat[new_key] = concatenated
                 continue
             elif isinstance(value, dict):
                 new_dict = recursive_concat([output[key] for output in outputs_])
@@ -71,17 +71,18 @@ def merge_outputs(outputs: list, prefix: str = None) -> dict:
     return recursive_concat(outputs)
 
 
-def reduce_outputs(outputs: list, reduction: str = 'mean', prefix: str = None) -> dict:
+def reduce_outputs(outputs: list, multi_dim: int = 0, reduction: str = 'mean', prefix: str = None) -> dict:
     """Reduces outputs from series of steps and returns dictionary.
 
     Args:
         outputs: A list of outputs from the series of PyTorch Lightning steps.
         prefix: A prefix string to add for every key in the output dictionary.
+        multi_dim: The dimension to use for concatenation if there is more than one (default=0).
         reduction: A string specifying the reduction method ('mean', 'none', 'sum').
                    If 'none' this function is the same as ``merge_outputs``.
     """
 
-    merged = merge_outputs(outputs=outputs, prefix=prefix)
+    merged = merge_outputs(outputs=outputs, prefix=prefix, multi_dim=multi_dim)
     reduced = {key: reduce(value, reduction) if isinstance(value, torch.Tensor) else value
                for key, value in merged.items()}
     return reduced
@@ -136,12 +137,17 @@ def extract_unique_metrics(output: dict) -> dict:
     return extract_recursive(output)
 
 
-def reduce_and_log(outputs: list, reduction: str = 'mean', keys: Optional[Sequence[str]] = None, prefix: str = None):
+def reduce_and_log(outputs: list,
+                   multi_dim: int = 0,
+                   reduction: str = 'mean',
+                   keys: Optional[Sequence[str]] = None,
+                   prefix: str = None):
     """Reduces all the outputs, adds prefix if provided and inserts new key 'log' for logger to capture the output.
 
     Args:
         outputs: A list of outputs from series of PyTorch Lightning steps.
         prefix: A string prefix to add for every key in averaged dictionary.
+        multi_dim: The dimension to use for concatenation if there is more than one (default=0).
         reduction: A string specifying the reduction method ('mean', 'sum') (default='mean').
         keys: Optional; If no provided, adds all the keys found for logging.
     """
@@ -153,7 +159,7 @@ def reduce_and_log(outputs: list, reduction: str = 'mean', keys: Optional[Sequen
                        "If it was intentional, consider using ``merge_outputs``."
                        "Using 'mean' instead.")
 
-    reduced = reduce_outputs(outputs=outputs, reduction=reduction, prefix=prefix)
+    reduced = reduce_outputs(outputs=outputs, multi_dim=multi_dim, reduction=reduction, prefix=prefix)
     metrics = extract_unique_metrics(reduced)
 
     keys = keys or metrics.keys()
