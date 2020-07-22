@@ -55,15 +55,13 @@ def merge_outputs(outputs: list, multi_dim: int = 0, prefix: str = None) -> dict
         output = outputs_[0]
         for key, value in output.items():
             if isinstance(value, torch.Tensor):
-                tensors = [output[key] for output in outputs_]
-                concatenated = torch.cat(tensors, dim=multi_dim if value.ndim > 1 else 0)
+                params = dict(dim=multi_dim) if value.ndim > 1 else dict()
+                merged = torch.cat([output[key] for output in outputs_], **params)
                 new_key = (prefix + '_' if prefix else '' + key).strip('_')
-                concat[new_key] = concatenated
-                continue
+                concat[new_key] = merged
             elif isinstance(value, dict):
                 new_dict = recursive_concat([output[key] for output in outputs_])
                 concat[key] = new_dict
-                continue
             else:
                 concat[key] = value
         return concat
