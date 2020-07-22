@@ -43,6 +43,18 @@ def merge_outputs(outputs: list, multi_dim: int = 0, prefix: str = None) -> dict
         multi_dim: The dimension to use for concatenation if there is more than one (default=0).
     """
 
+    def get_merge_fn(value: torch.Tensor):
+        from functools import partial
+
+        if value.ndim == 0:
+            return torch.stack
+
+        if value.ndim == 1:
+            return torch.cat
+
+        if value.ndim > 1:
+            return partial(torch.cat, dim=multi_dim)
+
     def recursive_concat(outputs_):
         concat = dict()
         if not outputs_:
@@ -55,8 +67,8 @@ def merge_outputs(outputs: list, multi_dim: int = 0, prefix: str = None) -> dict
         output = outputs_[0]
         for key, value in output.items():
             if isinstance(value, torch.Tensor):
-                params = dict(dim=multi_dim) if value.ndim > 1 else dict()
-                merged = torch.cat([output[key] for output in outputs_], **params)
+                merger = get_merge_fn(value)
+                merged = merger([output[key] for output in outputs_])
                 new_key = (prefix + '_' if prefix else '' + key).strip('_')
                 concat[new_key] = merged
             elif isinstance(value, dict):
