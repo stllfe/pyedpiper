@@ -35,7 +35,7 @@ def reduce(tensor: torch.Tensor, reduction: str) -> torch.Tensor:
 
 
 def merge_outputs(outputs: list, multi_dim: int = 0, prefix: str = None) -> dict:
-    """Merges outputs from different steps into one dict.
+    """Merges outputs from different steps into one dictionary.
 
     Args:
         outputs: A list of outputs from the series of PyTorch Lightning steps.
@@ -82,7 +82,7 @@ def merge_outputs(outputs: list, multi_dim: int = 0, prefix: str = None) -> dict
 
 
 def reduce_outputs(outputs: list, multi_dim: int = 0, reduction: str = 'mean', prefix: str = None) -> dict:
-    """Reduces outputs from series of steps and returns dictionary.
+    """Reduces outputs from a series of steps, forming a new merged dictionary.
 
     Args:
         outputs: A list of outputs from the series of PyTorch Lightning steps.
@@ -99,7 +99,7 @@ def reduce_outputs(outputs: list, multi_dim: int = 0, reduction: str = 'mean', p
 
 
 def change_prefix(output: dict, old: str, new: str) -> dict:
-    """Shorthand to swap outputs key prefix. 
+    """Shorthand for swapping outputs key prefixes.
     
     For example, swap 'val' metrics prefix to 'test' or vice versa for every dict entry.
     
@@ -124,9 +124,10 @@ def change_prefix(output: dict, old: str, new: str) -> dict:
 
 
 def extract_unique_metrics(output: dict) -> dict:
-    """Extracts all metrics from dict or nested dicts recursively.
+    """Extracts all the metrics from a dict or nested dicts recursively.
 
-    According to PyTorch Lightning API output metrics are of type ``torch.Tensors``.
+    Note:
+        According to PyTorch Lightning API output metrics are of type ``torch.Tensor``.
 
     Args:
         output:  An output dictionary from PyTorch Lightning step.
