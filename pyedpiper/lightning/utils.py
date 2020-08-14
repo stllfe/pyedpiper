@@ -166,8 +166,8 @@ def reduce_and_log(outputs: list,
     if reduction == 'none':
         from pytorch_lightning.utilities import rank_zero_warn
         reduction = 'mean'
-        rank_zero_warn("Reduction can't be 'none', since you want be able to log a sequence. "
-                       "If it was intentional, consider using ``merge_outputs``."
+        rank_zero_warn("Reduction can't be 'none', since you won't be able to log a sequence. "
+                       "If it was intentional, consider using `merge_outputs`."
                        "Using 'mean' instead.")
 
     reduced = reduce_outputs(outputs=outputs, multi_dim=multi_dim, reduction=reduction, prefix=prefix)

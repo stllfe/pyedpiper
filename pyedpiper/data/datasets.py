@@ -1,54 +1,23 @@
 import logging
 from abc import abstractmethod, ABCMeta
 from copy import deepcopy
-from os.path import basename
 from pathlib import Path
-from typing import Union, Callable
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Optional,
+    Union,
+)
 
-import matplotlib.pyplot as plt
+import albumentations as alb
 import numpy as np
 import pandas as pd
-from PIL import Image
-from albumentations import Compose
 from torch.utils.data import Dataset
 
+from .utils import plt_loader
+
 log = logging.getLogger(__name__)
-
-
-def file_loader(function: Callable) -> Callable:
-    """Decorator function to add `try` block and logging for loaders.
-
-    :return: wrapped function
-    """
-    from functools import wraps
-
-    @wraps(function)
-    def wrapper(path, **kwargs):
-
-        try:
-            return function(path, **kwargs)
-
-        except Exception as e:
-            filename = basename(path)
-            log.error(f"Error reading file `{filename}`: {e}")
-            raise e
-
-    return wrapper
-
-
-@file_loader
-def numpy_loader(path):
-    return np.load(str(path))
-
-
-@file_loader
-def plt_loader(path):
-    return plt.imread(str(path))
-
-
-@file_loader
-def pil_loader(path):
-    return Image.open(str(path))
 
 
 def _clean_path(path: Union[str, Path]) -> str:
@@ -60,12 +29,12 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
     def __init__(self,
                  root: Union[str, Path],
                  labels: Union[pd.DataFrame, dict, int, str, Path],
-                 key: str = 'label',
-                 index: str = 'image',
-                 extension: str = 'png',
-                 loader: Callable = plt_loader,
-                 transform: Compose = None,
-                 extract_filename: Callable = None, ):
+                 key: str,
+                 index: str,
+                 extensions: Iterable[str],
+                 loader: Callable,
+                 transform: Optional[Any] = None,
+                 extract_filename: Optional[Callable] = None):
 
         super().__init__()
 
@@ -73,15 +42,14 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
         self.labels = deepcopy(labels)
         self.transform = transform
         self.loader = loader
-        self.extension = extension[1:] if extension.startswith('.') else extension
+        self.extensions = extensions
         self.index = index
         self.key = key
+        self.files = list()
 
+        self._prepare_extensions()
         self._prepare_labels()
-
-        self.files = list(self.root.glob(f'*.{self.extension}'))
-
-        assert self.files, "Files with the specified extension can't be found!"
+        self._prepare_files()
 
         self._extract_filename = self._setup_filename_extractor(user_callback=extract_filename)
         self._get_target = self._setup_target_getter()
@@ -103,12 +71,12 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
                 for path in self.files:
 
                     if len(path.suffixes) > 1:
-                        error = ("Files have more than one extension suffix. "
+                        error = ("Files have more than one extension. "
                                  "Please provide your own `extract_filename` function.")
                         log.error(error)
                         raise AmbiguousFileExtensionError(error)
 
-                return lambda filepath: _clean_path(filepath) + f'.{self.extension}'
+                return lambda filepath: _clean_path(filepath) + f'.{self.e}'
 
             return lambda filepath: _clean_path(filepath)
 
@@ -146,13 +114,17 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
                 try:
                     self.labels.set_index(self.index, inplace=True)
                 except KeyError as e:
-                    raise ValueError(f"Labels DataFrame should contain '{self.index}' column. \n{e}")
+                    raise ValueError(f"Labels DataFrame should contain the '{self.index}' column. \n{e}")
 
             getter = lambda idx: self.labels.loc[idx][self.key]
 
         elif isinstance(self.labels, dict):
             # Then it's a dict
             if self.key:
+                item = next(iter(self.labels.values()))
+                assert isinstance(item, dict), (
+                    f"Using `key` attribute with dict typed labels implies nested dicts. Got `{type(item)}` instead."
+                )
                 getter = lambda idx: self.labels[idx][self.key]
             else:
                 getter = lambda idx: self.labels[idx]
@@ -179,8 +151,53 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
         if isinstance(self.labels, (Path, str)):
             self.labels = pd.read_csv(self.labels)
 
+    def _prepare_extensions(self):
+        self.extensions = tuple(map(lambda ext: ext[1:] if ext.startswith('.') else ext, self.extensions))
+
+    def _prepare_files(self):
+        files = list()
+        for ext in self.extensions:
+            files += list(self.root.glob(f'*.{ext}'))
+
+        self.files = files
+        assert self.files, "Files with the specified extensions can't be found!"
+
+
+def _get_unified_transform(t):
+    if isinstance(t, alb.Compose):
+        def wrapper(image):
+            return t(image=image)['image']
+
+        return wrapper
+    return t
+
+
+IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
+
 
 class ImageDataset(BaseDataset):
+
+    def __init__(self,
+                 root: Union[str, Path],
+                 labels: Union[pd.DataFrame, dict, int, str, Path],
+                 key: str,
+                 index: str,
+                 extensions: Iterable[str] = IMG_EXTENSIONS,
+                 loader: Callable = plt_loader,
+                 transform: Optional[Any] = None,
+                 extract_filename: Optional[Callable] = None):
+
+        super().__init__(
+            root=root,
+            labels=labels,
+            key=key,
+            index=index,
+            extensions=extensions,
+            loader=loader,
+            transform=transform,
+            extract_filename=extract_filename,
+        )
+        self.transform = _get_unified_transform(self.transform)
 
     def __getitem__(self, idx):
         path, target = self.samples[idx]
@@ -191,6 +208,6 @@ class ImageDataset(BaseDataset):
             image = image.clip(0, 255).astype(np.uint8)
 
         if self.transform:
-            image = self.transform(image=image)['image']
+            image = self.transform(image)
 
         return image, target

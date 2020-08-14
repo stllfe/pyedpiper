@@ -1,7 +1,5 @@
 from .common import (
     Concat,
-    Flatten,
-    Identity,
     Lambda,
     Positional,
 )
@@ -10,9 +8,17 @@ from .extractor import (
     SEResNeXt50Extractor,
     Extractor
 )
+from .loss import (
+    BinaryFocalLoss,
+    CauchyLoss,
+    FocalLoss,
+    OHEMNLLLoss,
+    SmoothCrossEntropyLoss,
+    WingLoss,
+)
 from .pooling import (
     GlobalAvgMeanStdStackPool2d,
     GlobalMixStackPool2d,
     GlobalAvgPool2d,
-    GlobalMaxPool2d
+    GlobalMaxPool2d,
 )

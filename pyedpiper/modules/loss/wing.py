@@ -1,11 +1,11 @@
-from torch.nn.modules.loss import _Loss
-
 from .functional import wing_loss
+from .loss import Loss
 
 __all__ = ["WingLoss"]
 
 
-class WingLoss(_Loss):
+class WingLoss(Loss):
+    __constants__ = ["width", "reduction", "curvature"]
 
     def __init__(self, width=5, curvature=0.5, reduction="mean"):
         super(WingLoss, self).__init__(reduction=reduction)

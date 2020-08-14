@@ -1,12 +1,13 @@
 import torch
-from torch.nn.modules.loss import _Loss
 
 from .functional import cauchy_loss
+from .loss import Loss
 
 __all__ = ["CauchyLoss"]
 
 
-class CauchyLoss(_Loss):
+class CauchyLoss(Loss):
+    __constants__ = ['c', 'reduction']
 
     def __init__(self, c=1.0, reduction='mean', ignore_index=None):
         super(CauchyLoss, self).__init__(reduction=reduction)
