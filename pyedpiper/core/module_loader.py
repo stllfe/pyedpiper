@@ -2,10 +2,8 @@ import logging
 import os
 
 from importlib import import_module
-from importlib.util import (
-    module_from_spec,
-    spec_from_file_location,
-)
+from importlib.util import module_from_spec
+from importlib.util import spec_from_file_location
 from pathlib import Path
 
 try:
@@ -122,18 +120,11 @@ def _get_project_root() -> Path:
 
 
 def _get_absolute_path(path: str) -> Path:
-    """
-    Returns the full path from posix one
-    :param path: str or Path-like object
-    :return: Path object
-    """
+    """Returns the full path from posix one."""
     return Path(path).resolve()
 
 
 def _get_relative_path(path: str) -> Path:
-    """
-    Returns path relative to the project root
-    :param path: str or Path-like object
-    :return: Path object
-    """
+    """Returns path relative to the project root."""
+
     return (_get_project_root() / Path(path)).resolve()

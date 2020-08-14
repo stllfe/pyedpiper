@@ -49,7 +49,7 @@ def _merge(*dicts, dtype=dict):
 
 
 def _to_dict(c: Any):
-    # If provided object is omegaconf, try to resolve it
+    # If provided object is OmegaConf, try to resolve it.
     try:
         import omegaconf
         if isinstance(c, omegaconf.DictConfig):
@@ -60,15 +60,14 @@ def _to_dict(c: Any):
     try:
         if isinstance(c, dict):
             return c
-
         elif isinstance(c, Mapping):
             return dict(c)
-
         else:
-            TypeError("provided object should be a mapping.")
+            TypeError("Provided object should be a mapping.")
 
     except Exception as e:
         log.error(f"Can't convert to dict! \n{e}")
+        raise e
 
 
 def _get_params(node: Mapping):
@@ -76,11 +75,8 @@ def _get_params(node: Mapping):
 
 
 def _resolve_target(target_config: Mapping) -> type:
-    """Get concrete class from config entry.
+    """Get concrete class from config entry."""
 
-    :param target_config: config entry with 'class', 'params' and (optionally) 'module' specified
-    :return: `type` object of corresponding class
-    """
     if _TARGET_KEY not in target_config or target_config[_TARGET_KEY] is None:
         error = f"No {_TARGET_KEY} property found in config."
         log.error(error)
@@ -154,7 +150,8 @@ def instantiate(target_config: Mapping, **kwargs) -> Any:
 
 
 def call(target_config: Mapping, *args, **kwargs) -> Any:
-    """Resolve the module and call the object with 'params' config keys."""
+    """Resolves a module and calls an object with provided parameters."""
+
     assert target_config is not None, "Input config is `None`"
 
     # Convert to dict if needed
@@ -174,11 +171,12 @@ def call(target_config: Mapping, *args, **kwargs) -> Any:
 
 
 def set_random_seed(seed: Optional[int] = None) -> int:
-    """Fix seed values for pseudo-random number generators.
+    """Fixes seed values in pseudo-random number generators.
 
     Specifically, fixes seed inside:
         PyTorch, Numpy, python.random and sets PYTHONHASHSEED environment variable.
     """
+
     max_seed_value = np.iinfo(np.uint32).max
     min_seed_value = np.iinfo(np.uint32).min
 
@@ -260,10 +258,9 @@ def as_tensor(obj, dtype=None) -> torch.Tensor:
 
 
 def transfer_weights(model: Module, state_dict: OrderedDict, verbose=False) -> Module:
-    """Copy weights from state dict to model, skipping layers that are incompatible.
+    """Copies weights from the state dict into the model, skipping layers that are incompatible.
 
-    This method is helpful if you are doing some model surgery and want to load
-    part of the model weights into different model.
+    It's helpful for model surgery and/or partial weights initialization.
 
     Args:
         model (Module): Model to load weights into
@@ -273,6 +270,7 @@ def transfer_weights(model: Module, state_dict: OrderedDict, verbose=False) -> M
     Returns:
         Module: The model
     """
+
     missing_keys = list()
     unexpected_keys = list()
     for name, value in state_dict.items():

@@ -1,8 +1,10 @@
-from typing import Optional, Sequence
+from typing import Optional
+from typing import Sequence
 
 import torch
 from pytorch_lightning.metrics.classification import auroc as pl_auroc
-from pytorch_lightning.metrics.functional import stat_scores_multiple_classes, stat_scores
+from pytorch_lightning.metrics.functional import stat_scores
+from pytorch_lightning.metrics.functional import stat_scores_multiple_classes
 from pytorch_lightning.metrics.functional.classification import get_num_classes
 from pytorch_lightning.metrics.functional.reduction import reduce
 

@@ -1,4 +1,5 @@
-from typing import Optional, Any
+from typing import Any
+from typing import Optional
 
 import torch
 from pytorch_lightning.metrics import TensorMetric

@@ -1,4 +1,6 @@
-from typing import Optional, Any, Sequence
+from typing import Any
+from typing import Optional
+from typing import Sequence
 
 import torch
 from pytorch_lightning.metrics import TensorMetric

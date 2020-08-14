@@ -1,5 +1,6 @@
 import logging
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta
+from abc import abstractmethod
 from copy import deepcopy
 from pathlib import Path
 from typing import (
@@ -76,7 +77,7 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
                         log.error(error)
                         raise AmbiguousFileExtensionError(error)
 
-                return lambda filepath: _clean_path(filepath) + f'.{self.e}'
+                return lambda filepath: filepath
 
             return lambda filepath: _clean_path(filepath)
 

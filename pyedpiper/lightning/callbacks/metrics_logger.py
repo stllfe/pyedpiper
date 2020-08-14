@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import LightningModule
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
