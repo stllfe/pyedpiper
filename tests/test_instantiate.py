@@ -1,9 +1,9 @@
-from core.common import (
+from pyedpiper import instantiate
+from pyedpiper.core.common import (
     _MODULE_KEY as MODULE_KEY,
     _PARAMS_KEY as PARAMS_KEY,
     _TARGET_KEY as TARGET_KEY,
 )
-from pyedpiper import instantiate
 
 THIS_MODULE = str(__name__)
 
