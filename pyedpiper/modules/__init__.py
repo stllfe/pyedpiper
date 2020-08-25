@@ -4,8 +4,6 @@ from .common import (
     Positional,
 )
 from .extractor import (
-    EfficientNetExtractor,
-    SEResNeXt50Extractor,
     Extractor
 )
 from .loss import (
