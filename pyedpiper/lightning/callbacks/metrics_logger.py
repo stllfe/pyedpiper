@@ -9,17 +9,18 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class MetricsLogger(Callback):
 
-    def __init__(self, metrics: List[Metric],
-                 outputs_key: str,
-                 targets_key: str,
+    def __init__(self,
+                 metrics: List[Metric],
+                 input_key: str,
+                 target_key: str,
                  prefix: Optional[str] = None,
                  per_batch: bool = False):
 
         super(MetricsLogger, self).__init__()
         self.metrics = metrics
 
-        self.outputs_key = outputs_key
-        self.targets_key = targets_key
+        self.input_key = input_key
+        self.target_key = target_key
 
         self.per_batch = per_batch
         self.epoch_last_check = None
@@ -35,13 +36,17 @@ class MetricsLogger(Callback):
                 "Cannot use MetricsLogger callback with Trainer that has no logger."
             )
 
+    def on_train_end(self, trainer, pl_module):
+        pass
+
     def on_validation_end(self, trainer: Trainer, pl_module: LightningModule):
         epoch = trainer.current_epoch
-        outputs = trainer.callback_metrics[self.outputs_key]
-        targets = trainer.callback_metrics[self.targets_key]
+
+        input = trainer.callback_metrics[self.input_key]
+        target = trainer.callback_metrics[self.target_key]
 
         for name, metric in zip(self.names, self.metrics):
-            self.values[name] = float(metric(outputs, targets))
+            self.values[name] = float(metric(input, target))
 
         if self._is_time_to_log(epoch):
             trainer.logger.log_metrics(self.values, step=epoch)

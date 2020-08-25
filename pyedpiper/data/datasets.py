@@ -1,19 +1,18 @@
 import logging
+import numpy as np
+import pandas as pd
+
 from abc import ABCMeta
 from abc import abstractmethod
 from copy import deepcopy
 from pathlib import Path
 from typing import (
-    Any,
     Callable,
     Iterable,
     Optional,
     Union,
 )
 
-import albumentations as alb
-import numpy as np
-import pandas as pd
 from torch.utils.data import Dataset
 
 from .utils import plt_loader
@@ -34,7 +33,7 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
                  index: str,
                  extensions: Iterable[str],
                  loader: Callable,
-                 transform: Optional[Any] = None,
+                 transform: Optional[Callable] = None,
                  extract_filename: Optional[Callable] = None):
 
         super().__init__()
@@ -164,12 +163,17 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
         assert self.files, "Files with the specified extensions can't be found!"
 
 
-def _get_unified_transform(t):
-    if isinstance(t, alb.Compose):
-        def wrapper(image):
-            return t(image=image)['image']
+def _get_unified_transform(t: Callable):
+    import importlib.util
 
-        return wrapper
+    if importlib.util.find_spec("albumenations") is not None:
+        import albumentations as alb
+        if isinstance(t, alb.Compose):
+            def wrapper(image):
+                return t(image=image)['image']
+
+            return wrapper
+
     return t
 
 
@@ -185,7 +189,7 @@ class ImageDataset(BaseDataset):
                  index: str,
                  extensions: Iterable[str] = IMG_EXTENSIONS,
                  loader: Callable = plt_loader,
-                 transform: Optional[Any] = None,
+                 transform: Optional[Callable] = None,
                  extract_filename: Optional[Callable] = None):
 
         super().__init__(

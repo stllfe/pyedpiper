@@ -9,4 +9,3 @@ albumentations~=0.4.5
 typing~=3.7.4.3
 Pillow~=7.1.2
 torchvision~=0.6.0
-pretrainedmodels~=0.7.3

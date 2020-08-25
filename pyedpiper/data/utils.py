@@ -1,10 +1,10 @@
 import logging
-from os.path import basename
-from typing import Callable
-
 import numpy as np
-from PIL import Image
+
 from matplotlib import pyplot as plt
+from os.path import basename
+from PIL import Image
+from typing import Callable
 
 from ..core.common import as_numpy
 

@@ -15,8 +15,9 @@ __all__ = [
     "misc",
     "modules",
     "optim",
-    "transfer_weights",
     "set_random_seed",
+    "transfer_weights",
+    "__version__",
 ]
 
 __version__ = "0.1.6"
