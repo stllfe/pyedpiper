@@ -166,7 +166,7 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
 def _get_unified_transform(t: Callable):
     import importlib.util
 
-    if importlib.util.find_spec("albumenations") is not None:
+    if importlib.util.find_spec("albumentations") is not None:
         import albumentations as alb
         if isinstance(t, alb.Compose):
             def wrapper(image):
